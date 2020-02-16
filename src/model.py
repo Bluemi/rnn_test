@@ -9,7 +9,7 @@ def create_uncompiled_model():
 
     model.add(layers.TimeDistributed(layers.Dense(
         units=32, kernel_initializer='random_uniform', bias_initializer='random_uniform', input_shape=(None, 1)
-    ), input_shape=(NUM_SAMPLES_PER_BATCH, 1)))
+    ), input_shape=(None, 1)))
 
     model.add(layers.LSTM(
         32, kernel_initializer='random_uniform', bias_initializer='random_uniform',
@@ -24,7 +24,5 @@ def create_uncompiled_model():
 def create_compiled_model():
     model = create_uncompiled_model()
     model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss=keras.losses.MeanSquaredError())
-
-    print(model.summary())
 
     return model

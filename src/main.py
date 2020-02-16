@@ -8,10 +8,10 @@ NUM_SAMPLES_PER_BATCH = 1024
 NOISE_INTENSITY = 0.2
 
 
-def create_train_data(num_batches):
-    x_range = np.linspace(0, np.pi * 2, NUM_SAMPLES_PER_BATCH)
+def create_data_set(num_batches, num_periods=1, num_samples_per_batch=NUM_SAMPLES_PER_BATCH):
+    x_range = np.linspace(0, np.pi * 2 * num_periods, num_samples_per_batch)
 
-    data_shape = num_batches, NUM_SAMPLES_PER_BATCH
+    data_shape = num_batches, num_samples_per_batch
 
     x_data = np.empty(data_shape)
     y_data = np.empty(data_shape)
@@ -25,8 +25,8 @@ def create_train_data(num_batches):
         x_data[batch_index] = input_sequence
         y_data[batch_index] = output_sequence
 
-    x_data = x_data.reshape((num_batches, NUM_SAMPLES_PER_BATCH, 1))
-    y_data = y_data.reshape((num_batches, NUM_SAMPLES_PER_BATCH, 1))
+    x_data = x_data.reshape((num_batches, num_samples_per_batch, 1))
+    y_data = y_data.reshape((num_batches, num_samples_per_batch, 1))
 
     return x_data, y_data
 
@@ -38,7 +38,7 @@ def plot_results(input_data, result):
     y_data = y_data.reshape((y_data.shape[0], y_data.shape[1]))
     result = result.reshape((result.shape[0], result.shape[1]))
 
-    x_range = np.linspace(0, np.pi * 2, NUM_SAMPLES_PER_BATCH)
+    x_range = np.linspace(0, np.pi * 2, x_data.shape[1])
 
     for batch_index in range(x_data.shape[0]):
         plt.plot(x_range, y_data[batch_index])
@@ -48,14 +48,14 @@ def plot_results(input_data, result):
 
 
 def main():
-    x_train_data, y_train_data = create_train_data(NUM_BATCHES)
-    val_data = create_train_data(32)
+    x_train_data, y_train_data = create_data_set(NUM_BATCHES)
+    val_data = create_data_set(32)
 
     train_model = model.create_compiled_model()
 
-    train_model.fit(x=x_train_data, y=y_train_data, batch_size=32, epochs=140, validation_data=val_data)
+    train_model.fit(x=x_train_data, y=y_train_data, batch_size=32, epochs=40, validation_data=val_data)
 
-    test_data = create_train_data(64)
+    test_data = create_data_set(64, num_periods=3, num_samples_per_batch=NUM_SAMPLES_PER_BATCH*3)
 
     result = train_model.predict(test_data)
 
