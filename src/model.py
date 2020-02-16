@@ -1,8 +1,6 @@
 import tensorflow.keras as keras
 from tensorflow.keras import layers
 
-from main import NUM_SAMPLES_PER_BATCH
-
 
 def create_uncompiled_model():
     model = keras.Sequential()
