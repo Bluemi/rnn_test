@@ -8,11 +8,11 @@ def create_uncompiled_model():
     model = keras.Sequential()
 
     model.add(layers.TimeDistributed(layers.Dense(
-        units=16, kernel_initializer='random_uniform', bias_initializer='random_uniform', input_shape=(None, 1)
+        units=32, kernel_initializer='random_uniform', bias_initializer='random_uniform', input_shape=(None, 1)
     ), input_shape=(NUM_SAMPLES_PER_BATCH, 1)))
 
-    model.add(layers.SimpleRNN(
-        16, kernel_initializer='random_uniform', bias_initializer='random_uniform',
+    model.add(layers.LSTM(
+        32, kernel_initializer='random_uniform', bias_initializer='random_uniform',
         recurrent_initializer='random_uniform', return_sequences=True
     ))
 
@@ -23,7 +23,7 @@ def create_uncompiled_model():
 
 def create_compiled_model():
     model = create_uncompiled_model()
-    model.compile(optimizer=keras.optimizers.RMSprop(), loss=keras.losses.MeanSquaredError(), metrics=['mse'])
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss=keras.losses.MeanSquaredError())
 
     print(model.summary())
 
