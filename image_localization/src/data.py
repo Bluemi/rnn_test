@@ -67,12 +67,15 @@ class ImageLocalizationDataset:
     def relative_image_position_to_absolute(relative_position):
         return (relative_position * IMAGE_SIZE).astype(int)
 
-    def show(self):
+    def show(self, scale=1.0):
         """
         Shows a series of images describing the dataset
         """
         for x_sample, y_sample in self:
-            cv2.imshow(f'x={y_sample[1]:2.2} y={y_sample[0]:2.2}', x_sample.reshape(IMAGE_SIZE))
+            cv2.imshow(
+                f'x={y_sample[1]:2.2} y={y_sample[0]:2.2}',
+                cv2.resize(x_sample.reshape(IMAGE_SIZE), (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+            )
             if cv2.waitKey() == 27:
                 cv2.destroyAllWindows()
                 break

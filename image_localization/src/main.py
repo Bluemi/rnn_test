@@ -16,7 +16,7 @@ def main():
     test_results = model.predict(x=test_dataset.get_x_reshaped())
 
     test_dataset.draw_results(test_results)
-    test_dataset.show()
+    test_dataset.show(3.0)
 
 
 if __name__ == '__main__':
