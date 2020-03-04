@@ -5,6 +5,14 @@ import cv2
 import numpy as np
 
 
+ESCAPE_KEY = 27
+ENTER_KEY = 13
+LEFT_KEY = 81
+RIGHT_KEY = 83
+A_KEY = 97
+E_KEY = 101
+
+
 class FPS:
     def __init__(self, observation_period=1):
         """
@@ -50,13 +58,14 @@ class RenderWindow:
         self.title = title
         cv2.namedWindow(title)
 
-    def show_frame(self, frame, wait_key_duration=10):
+    def show_frame(self, frame, wait_key_duration=0):
         """
         Shows the given frame.
 
         :param frame: The frame to show
         :type frame: np.ndarray
-        :param wait_key_duration: The duration to wait for the next keystroke in milliseconds. Defaults to 10.
+        :param wait_key_duration: The duration to wait for the next keystroke in milliseconds. Defaults to 0, which
+                                  means it waits until a key is pressed.
         :type wait_key_duration: int
 
         :return: The key that was pressed during showing the window
@@ -70,3 +79,79 @@ class RenderWindow:
         Closes the window.
         """
         cv2.destroyWindow(self.title)
+
+
+class ShowFramesControl:
+    def __init__(self, max_index):
+        self.current_index = 0
+        self.max_index = max_index
+        self.wait_key_duration = 0
+        self.running = True
+
+    def apply_key(self, key):
+        if key == ESCAPE_KEY:
+            self.running = False
+        elif key == RIGHT_KEY:
+            if self.current_index < self.max_index-1:
+                self.current_index += 1
+            else:
+                print('end of video', flush=True)
+        elif key == LEFT_KEY:
+            if self.current_index >= 1:
+                self.current_index -= 1
+            else:
+                print('begin of video', flush=True)
+        else:
+            return False
+        return True
+
+
+class EditFramesControl(ShowFramesControl):
+    def __init__(self, max_index):
+        super(EditFramesControl, self).__init__(max_index)
+        self.start_index = 0
+        self.end_index = max_index
+
+    def apply_key(self, key):
+        if super().apply_key(key):
+            return True
+
+        if key == ENTER_KEY:
+            self.running = False
+        if key == A_KEY:
+            self.start_index = self.current_index
+            print('set start index = {}'.format(self.start_index))
+        elif key == E_KEY:
+            self.end_index = self.current_index + 1
+            print('set end index = {}'.format(self.end_index))
+        else:
+            return False
+
+        return True
+
+
+def show_frames(frames, control=None, window_title='frames'):
+    """
+
+    :param frames: The frames to show
+    :type frames: list[np.ndarray] or np.ndarray
+    :param control: A ShowFramesControl to manage the frames
+    :type control: ShowFramesControl
+    :param window_title: The title of the window
+    :type window_title: str
+
+    :return: Returns the control in its end state
+    :rtype: ShowFramesControl
+    """
+    window = RenderWindow(window_title)
+
+    if control is None:
+        control = ShowFramesControl(len(frames))
+
+    while control.running:
+        key = window.show_frame(frames[control.current_index], wait_key_duration=control.wait_key_duration)
+        control.apply_key(key)
+
+    window.close()
+
+    return control
