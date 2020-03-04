@@ -1,5 +1,3 @@
-import cv2
-
 from camera import Camera
 from util import FPS, RenderWindow
 
