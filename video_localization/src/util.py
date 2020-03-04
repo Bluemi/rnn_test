@@ -36,7 +36,7 @@ class FPS:
         if len(self.times) <= 1:
             return 0
 
-        return (1 / np.mean(np.diff(self.times))), len(self.times)
+        return 1 / np.mean(np.diff(self.times))
 
 
 class RenderWindow:
