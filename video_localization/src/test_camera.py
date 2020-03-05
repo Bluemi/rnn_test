@@ -21,6 +21,8 @@ def test_camera(_args):
         key = render_window.show_frame(frame, wait_key_duration=10)
         if key == ESCAPE_KEY:
             break
+        elif key != -1:
+            print('key: {}'.format(key))
 
         fps.update()
         print(fps.get_fps(), flush=True)

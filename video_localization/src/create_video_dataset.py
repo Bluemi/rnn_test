@@ -4,7 +4,8 @@ import time
 import numpy as np
 
 from camera import Camera
-from util import RenderWindow, ESCAPE_KEY, EditFramesControl, show_frames
+from data import VIDEO_DATASET_FILENAME
+from util import RenderWindow, ESCAPE_KEY, show_frames, default_key_callback, ENTER_KEY, A_KEY, E_KEY
 
 DATASET_TIME_FORMAT = '%H_%M_%S__%d_%m_%Y'
 
@@ -44,10 +45,43 @@ def create_video_dataset(args):
 
     result = np.array(chosen_frames)
 
-    file_path = os.path.join(dataset_directory, 'data.npy')
+    file_path = os.path.join(dataset_directory, VIDEO_DATASET_FILENAME)
     with open(file_path, 'wb') as f:
         # noinspection PyTypeChecker
         np.save(f, result)
+
+
+class EditKeySupplier:
+    def __init__(self, num_frames):
+        self.start_index = 0
+        self.end_index = num_frames
+
+    def __call__(self, frames_state, key):
+        """
+        Changes the frames_state, depending on key.
+
+        :param frames_state: The ShowFramesState object to handle
+        :type frames_state: ShowFramesState
+        :param key: The pressed key
+        :type key: int
+        :return: True, if the key was applied otherwise False
+        :rtype: bool
+        """
+        if default_key_callback(frames_state, key):
+            return True
+
+        if key == ENTER_KEY:
+            frames_state.running = False
+        if key == A_KEY:
+            self.start_index = frames_state.current_index
+            print('set start index = {}'.format(self.start_index), flush=True)
+        elif key == E_KEY:
+            self.end_index = frames_state.current_index + 1
+            print('set end index = {}'.format(self.end_index))
+        else:
+            return False
+
+        return True
 
 
 def choose_frames(frames):
@@ -57,8 +91,8 @@ def choose_frames(frames):
     :param frames: A list of ndarray containing the recorded videos
     :type frames: list[np.ndarray]
     """
-    edit_control = EditFramesControl(len(frames))
+    edit_key_supplier = EditKeySupplier(len(frames))
 
-    show_frames(frames, edit_control, 'choose frames')
+    show_frames(frames, 'choose frames', key_callback=edit_key_supplier)
 
-    return frames[edit_control.start_index:edit_control.end_index]
+    return frames[edit_key_supplier.start_index:edit_key_supplier.end_index]

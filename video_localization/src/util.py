@@ -7,10 +7,16 @@ import numpy as np
 
 ESCAPE_KEY = 27
 ENTER_KEY = 13
+SPACE_KEY = 32
 LEFT_KEY = 81
 RIGHT_KEY = 83
+L_KEY = 108
+H_KEY = 104
 A_KEY = 97
 E_KEY = 101
+
+ACTION_LEFT_KEYS = (LEFT_KEY, H_KEY)
+ACTION_RIGHT_KEYS = (RIGHT_KEY, L_KEY, SPACE_KEY)
 
 
 class FPS:
@@ -74,14 +80,15 @@ class RenderWindow:
         cv2.imshow(self.title, frame)
         return cv2.waitKey(wait_key_duration)
 
-    def set_mouse_callback(self, mouse_callback: Callable):
+    def set_mouse_callback(self, mouse_callback: Callable, param=None):
         """
         Sets the mouse callback for this window.
 
         :param mouse_callback: A function that will be called if the mouse moves
         :type mouse_callback: Callable
+        :param param: Additional parameter for the mouse callback
         """
-        cv2.setMouseCallback(self.title, mouse_callback)
+        cv2.setMouseCallback(self.title, mouse_callback, param)
 
     def close(self):
         """
@@ -112,9 +119,9 @@ class ShowFramesControl:
     def apply_key(self, key):
         if key == ESCAPE_KEY:
             self.running = False
-        elif key == RIGHT_KEY:
+        elif key in ACTION_RIGHT_KEYS:
             self.inc_index()
-        elif key == LEFT_KEY:
+        elif key in ACTION_LEFT_KEYS:
             self.dec_index()
         else:
             return False
@@ -124,80 +131,104 @@ class ShowFramesControl:
         pass
 
 
-class EditFramesControl(ShowFramesControl):
-    def __init__(self, max_index):
-        super(EditFramesControl, self).__init__(max_index)
-        self.start_index = 0
-        self.end_index = max_index
+class ShowFramesState:
+    def __init__(self, num_frames):
+        self.current_index = 0
+        self.wait_key_duration = 0
+        self.running = True
+        self.num_frames = num_frames
 
-    def apply_key(self, key):
-        if super().apply_key(key):
-            return True
-
-        if key == ENTER_KEY:
-            self.running = False
-        if key == A_KEY:
-            self.start_index = self.current_index
-            print('set start index = {}'.format(self.start_index))
-        elif key == E_KEY:
-            self.end_index = self.current_index + 1
-            print('set end index = {}'.format(self.end_index))
+    def inc_index(self):
+        if self.current_index < self.num_frames - 1:
+            self.current_index += 1
         else:
-            return False
+            print('end of video', flush=True)
 
-        return True
-
-
-class PointHandsControl(ShowFramesControl):
-    def __init__(self, max_index):
-        super(PointHandsControl, self).__init__(max_index)
-        self.points = np.empty((max_index, 2), dtype=np.float)
-        self.x = None
-        self.y = None
-
-    def _has_x_y(self):
-        return self.x is not None and self.y is not None
-
-    def _set_point(self):
-        if self._has_x_y():
-            self.points[self.current_index][0] = self.x
-            self.points[self.current_index][1] = self.y
-            self.inc_index()
+    def dec_index(self):
+        if self.current_index >= 1:
+            self.current_index -= 1
         else:
-            print('Could not set point, because x, y was not defined.', flush=True)
-
-    def mouse_callback(self, event_type, x, y, *args):
-        if event_type == 0:
-            self.x = x
-            self.y = y
-        elif event_type == 1:
-            self._set_point()
+            print('begin of video', flush=True)
 
 
-def show_frames(frames, control=None, window_title='frames'):
+def default_key_callback(frames_state, key):
     """
+    Changes the frames_state, depending on key.
+
+    :param frames_state: The ShowFramesState object to handle
+    :type frames_state: ShowFramesState
+    :param key: The pressed key
+    :type key: int
+    :return: True, if the key was applied otherwise False
+    :rtype: bool
+    """
+    if key == ESCAPE_KEY:
+        frames_state.running = False
+    elif key in ACTION_RIGHT_KEYS:
+        frames_state.inc_index()
+    elif key in ACTION_LEFT_KEYS:
+        frames_state.dec_index()
+    else:
+        return False
+    return True
+
+
+def default_mouse_callback(*_args):
+    pass
+
+
+def default_frame_callback(frame_state, frames):
+    """
+    Returns the current frame.
+
+    :param frame_state: The current frame state
+    :type frame_state: ShowFramesState
+    :param frames: The frames to show
+    :type frames: list[np.ndarray] or np.ndarray
+    :return: The current frame
+    :rtype: np.ndarray
+    """
+    return frames[frame_state.current_index]
+
+
+def show_frames(frames, window_title='frames', key_callback=None, mouse_callback=None, frame_callback=None):
+    """
+    Shows the given frames
 
     :param frames: The frames to show
     :type frames: list[np.ndarray] or np.ndarray
-    :param control: A ShowFramesControl to manage the frames
-    :type control: ShowFramesControl
     :param window_title: The title of the window
     :type window_title: str
+    :param key_callback: Callback for every keystroke. Should take the current frame_state object, as well as the
+                         pressed key
+    :type key_callback: Callable or None
+    :param mouse_callback: Callback for mouse movements. Should take the current frame_state object, as well as the
+    :type mouse_callback: Callable or None
+    :param frame_callback: Callable that returns the ndarray to render
+    :type frame_callback: Callable or None
 
     :return: Returns the control in its end state
     :rtype: ShowFramesControl
     """
+    frames_state = ShowFramesState(len(frames))
+
+    if key_callback is None:
+        key_callback = default_key_callback
+
+    if mouse_callback is None:
+        mouse_callback = default_mouse_callback
+
+    if frame_callback is None:
+        frame_callback = default_frame_callback
+
     window = RenderWindow(window_title)
+    if mouse_callback is not None:
+        window.set_mouse_callback(mouse_callback, frames_state)
 
-    if control is None:
-        control = ShowFramesControl(len(frames))
-
-    window.set_mouse_callback(control.mouse_callback)
-
-    while control.running:
-        key = window.show_frame(frames[control.current_index], wait_key_duration=control.wait_key_duration)
-        control.apply_key(key)
+    while frames_state.running:
+        key = window.show_frame(frame_callback(frames_state, frames), wait_key_duration=frames_state.wait_key_duration)
+        key_callback(frames_state, key)
 
     window.close()
 
-    return control
+    return frames_state
