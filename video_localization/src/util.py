@@ -1,5 +1,5 @@
 import time
-from collections import deque
+from collections import deque, Callable
 
 import cv2
 import numpy as np
@@ -74,6 +74,15 @@ class RenderWindow:
         cv2.imshow(self.title, frame)
         return cv2.waitKey(wait_key_duration)
 
+    def set_mouse_callback(self, mouse_callback: Callable):
+        """
+        Sets the mouse callback for this window.
+
+        :param mouse_callback: A function that will be called if the mouse moves
+        :type mouse_callback: Callable
+        """
+        cv2.setMouseCallback(self.title, mouse_callback)
+
     def close(self):
         """
         Closes the window.
@@ -88,22 +97,31 @@ class ShowFramesControl:
         self.wait_key_duration = 0
         self.running = True
 
+    def inc_index(self):
+        if self.current_index < self.max_index - 1:
+            self.current_index += 1
+        else:
+            print('end of video', flush=True)
+
+    def dec_index(self):
+        if self.current_index >= 1:
+            self.current_index -= 1
+        else:
+            print('begin of video', flush=True)
+
     def apply_key(self, key):
         if key == ESCAPE_KEY:
             self.running = False
         elif key == RIGHT_KEY:
-            if self.current_index < self.max_index-1:
-                self.current_index += 1
-            else:
-                print('end of video', flush=True)
+            self.inc_index()
         elif key == LEFT_KEY:
-            if self.current_index >= 1:
-                self.current_index -= 1
-            else:
-                print('begin of video', flush=True)
+            self.dec_index()
         else:
             return False
         return True
+
+    def mouse_callback(self, event_type, x, y, *args):
+        pass
 
 
 class EditFramesControl(ShowFramesControl):
@@ -130,6 +148,32 @@ class EditFramesControl(ShowFramesControl):
         return True
 
 
+class PointHandsControl(ShowFramesControl):
+    def __init__(self, max_index):
+        super(PointHandsControl, self).__init__(max_index)
+        self.points = np.empty((max_index, 2), dtype=np.float)
+        self.x = None
+        self.y = None
+
+    def _has_x_y(self):
+        return self.x is not None and self.y is not None
+
+    def _set_point(self):
+        if self._has_x_y():
+            self.points[self.current_index][0] = self.x
+            self.points[self.current_index][1] = self.y
+            self.inc_index()
+        else:
+            print('Could not set point, because x, y was not defined.', flush=True)
+
+    def mouse_callback(self, event_type, x, y, *args):
+        if event_type == 0:
+            self.x = x
+            self.y = y
+        elif event_type == 1:
+            self._set_point()
+
+
 def show_frames(frames, control=None, window_title='frames'):
     """
 
@@ -147,6 +191,8 @@ def show_frames(frames, control=None, window_title='frames'):
 
     if control is None:
         control = ShowFramesControl(len(frames))
+
+    window.set_mouse_callback(control.mouse_callback)
 
     while control.running:
         key = window.show_frame(frames[control.current_index], wait_key_duration=control.wait_key_duration)
