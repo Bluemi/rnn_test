@@ -1,12 +1,12 @@
 import time
 from collections import deque, Callable
-from enum import Enum
+from enum import IntEnum
 
 import cv2
 import numpy as np
 
 
-class KeyCodes(Enum):
+class KeyCodes(IntEnum):
     ESCAPE_KEY = 27
     ENTER_KEY = 13
     SPACE_KEY = 32
