@@ -13,9 +13,9 @@ def annotate_dataset(args):
 
     source_dataset = dataset_placeholder.load()
 
-    annotated_dataset = annotate_frames(source_dataset)
+    annotations = annotate_frames(source_dataset)
 
-    np.save(dataset_placeholder.get_annotations_path(), annotated_dataset.annotation_data)
+    np.save(dataset_placeholder.get_annotations_path(), annotations)
 
 
 class EditMouseSupplier:
@@ -99,8 +99,8 @@ def annotate_frames(dataset):
 
     :param dataset: The dataset to annotate
     :type dataset: VideoDataset
-    :return: The full dataset
-    :rtype: Dataset
+    :return: The annotations made
+    :rtype: np.ndarray
     """
     frames = dataset.video_data
     mouse_supplier = EditMouseSupplier(len(frames))
@@ -108,4 +108,4 @@ def annotate_frames(dataset):
 
     show_frames(dataset.video_data, 'annotate dataset', mouse_callback=mouse_supplier, frame_callback=render_supplier)
 
-    return Dataset(dataset.video_data, mouse_supplier.annotations)
+    return mouse_supplier.annotations

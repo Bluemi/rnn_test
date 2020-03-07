@@ -235,3 +235,7 @@ def show_frames(frames, window_title='frames', key_callback=None, mouse_callback
     window.close()
 
     return frames_state
+
+
+def always_true(_unused):
+    return True

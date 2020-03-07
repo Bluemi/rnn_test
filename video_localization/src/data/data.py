@@ -1,8 +1,10 @@
 import os
 from enum import Enum
+from collections import Callable
 
 import numpy as np
 
+from util.util import always_true
 
 VIDEO_DATASET_FILENAME = 'video_data.npy'
 ANNOTATION_DATASET_FILENAME = 'annotations.npy'
@@ -35,25 +37,34 @@ class VideoDataset:
 
 
 class Dataset:
-    def __init__(self, video_data, annotation_data):
+    def __init__(self, name, video_data, annotation_data):
         """
         Contains the video data as well as the hand position data
 
+        :param name: The name of the dataset
+        :type name: str
         :param video_data: The video data
         :type video_data: np.ndarray
         :param annotation_data:
         :type annotation_data: np.ndarray
         """
+        self.name = name
         self.video_data = video_data
         self.annotation_data = annotation_data
 
-        assert(video_data.shape[0] == annotation_data.shape[0])
+        assert (video_data.shape[0] == annotation_data.shape[0])
 
     def get_num_samples(self):
         return self.video_data.shape[0]
 
     def get_resolution(self):
         return self.video_data.shape[1:]
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return 'Dataset<{}>'.format(self.name)
 
     @staticmethod
     def from_placeholder(placeholder):
@@ -71,7 +82,7 @@ class Dataset:
         video_data = np.load(placeholder.get_video_path())
         annotations_data = np.load(placeholder.get_annotations_path())
 
-        return Dataset(video_data, annotations_data)
+        return Dataset(placeholder.get_basename(), video_data, annotations_data)
 
 
 class DatasetPlaceholder:
@@ -150,6 +161,9 @@ class DatasetPlaceholder:
     def __str__(self):
         return '{} ({})'.format(self.get_basename(), self.dataset_type.name.lower())
 
+    def __repr__(self):
+        return self.get_basename()
+
     @staticmethod
     def from_directory(path):
         """
@@ -175,15 +189,21 @@ class DatasetPlaceholder:
         return DatasetPlaceholder(path, dataset_type)
 
     @staticmethod
-    def list_database(database_path):
+    def list_database(database_path, dataset_filter=None):
         """
         Returns a list of DatasetPlaceholders from a given database path.
 
         :param database_path: The path of the database
         :type database_path: str
+        :param dataset_filter: A callable that is used to filter the datasets.
+                               Should expect a DatasetPlaceholder and return True or False
+        :type dataset_filter: Callable[[DatasetPlaceholder], bool] or None
         :return: A list of DatasetPlaceholders representing the database
         :rtype: list[DatasetPlaceholder]
         """
+        if dataset_filter is None:
+            dataset_filter = always_true
+
         if not os.path.isdir(database_path):
             raise DataError('Database {} does not exist'.format(database_path))
 
@@ -194,7 +214,9 @@ class DatasetPlaceholder:
         for subdir in sub_dirs:
             try:
                 dataset_dir = os.path.join(database_path, subdir)
-                placeholders.append(DatasetPlaceholder.from_directory(dataset_dir))
+                placeholder = DatasetPlaceholder.from_directory(dataset_dir)
+                if dataset_filter(placeholder):
+                    placeholders.append(placeholder)
             except DataError:
                 pass
 

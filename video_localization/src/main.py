@@ -2,6 +2,7 @@ import argparse
 
 from data import annotate_dataset, create_video_dataset, show_dataset
 from util import test_camera
+from model import train_conv_model
 
 
 def parse_args():
@@ -34,6 +35,16 @@ def parse_args():
         'database_directory', metavar='database-directory', type=str, help='The location of the database'
     )
     show_dataset_parser.set_defaults(func=show_dataset.show_dataset)
+
+    # train conv model
+    train_conv_model_parser = sub_parsers.add_parser(
+        'train-conv-model', description='Trains a convolutional model on a given database'
+    )
+    train_conv_model_parser.add_argument(
+        'database_directory', metavar='database-directory', type=str,
+        help='The path to the database that is used for training'
+    )
+    train_conv_model_parser.set_defaults(func=train_conv_model.train_conv_model)
 
     return parser.parse_args()
 
