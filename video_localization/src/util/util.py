@@ -1,22 +1,25 @@
 import time
 from collections import deque, Callable
+from enum import Enum
 
 import cv2
 import numpy as np
 
 
-ESCAPE_KEY = 27
-ENTER_KEY = 13
-SPACE_KEY = 32
-LEFT_KEY = 81
-RIGHT_KEY = 83
-L_KEY = 108
-H_KEY = 104
-A_KEY = 97
-E_KEY = 101
+class KeyCodes(Enum):
+    ESCAPE_KEY = 27
+    ENTER_KEY = 13
+    SPACE_KEY = 32
+    LEFT_KEY = 81
+    RIGHT_KEY = 83
+    L_KEY = 108
+    H_KEY = 104
+    A_KEY = 97
+    E_KEY = 101
 
-ACTION_LEFT_KEYS = (LEFT_KEY, H_KEY)
-ACTION_RIGHT_KEYS = (RIGHT_KEY, L_KEY, SPACE_KEY)
+
+ACTION_LEFT_KEYS = (KeyCodes.LEFT_KEY, KeyCodes.H_KEY)
+ACTION_RIGHT_KEYS = (KeyCodes.RIGHT_KEY, KeyCodes.L_KEY, KeyCodes.SPACE_KEY)
 
 
 class FPS:
@@ -117,7 +120,7 @@ class ShowFramesControl:
             print('begin of video', flush=True)
 
     def apply_key(self, key):
-        if key == ESCAPE_KEY:
+        if key == KeyCodes.ESCAPE_KEY:
             self.running = False
         elif key in ACTION_RIGHT_KEYS:
             self.inc_index()
@@ -162,7 +165,7 @@ def default_key_callback(frames_state, key):
     :return: True, if the key was applied otherwise False
     :rtype: bool
     """
-    if key == ESCAPE_KEY:
+    if key == KeyCodes.ESCAPE_KEY:
         frames_state.running = False
     elif key in ACTION_RIGHT_KEYS:
         frames_state.inc_index()

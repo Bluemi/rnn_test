@@ -1,7 +1,7 @@
 import numpy as np
 
-from data import chose_dataset_placeholder_from_database, Dataset
-from util import show_frames
+from data.data import chose_dataset_placeholder_from_database, Dataset
+from util.util import show_frames
 
 
 class RenderCrossSupplier:

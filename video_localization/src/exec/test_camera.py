@@ -1,5 +1,5 @@
-from camera import Camera
-from util import RenderWindow, FPS, ESCAPE_KEY
+from util.camera import Camera
+from util.util import RenderWindow, FPS, KeyCodes
 
 
 def test_camera(_args):
@@ -19,7 +19,7 @@ def test_camera(_args):
         frame = camera.next_frame()
 
         key = render_window.show_frame(frame, wait_key_duration=10)
-        if key == ESCAPE_KEY:
+        if key == KeyCodes.ESCAPE_KEY:
             break
         elif key != -1:
             print('key: {}'.format(key))
@@ -29,5 +29,3 @@ def test_camera(_args):
 
     render_window.close()
     camera.close()
-
-

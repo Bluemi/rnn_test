@@ -1,8 +1,8 @@
 import numpy as np
 
 
-from data import DatasetPlaceholder, chose_dataset_placeholder, VideoDataset, Dataset
-from util import show_frames, ShowFramesControl
+from data.data import DatasetPlaceholder, chose_dataset_placeholder, VideoDataset, Dataset
+from util.util import show_frames
 
 
 def annotate_dataset(args):

@@ -3,9 +3,9 @@ import time
 
 import numpy as np
 
-from camera import Camera
-from data import VIDEO_DATASET_FILENAME
-from util import RenderWindow, ESCAPE_KEY, show_frames, default_key_callback, ENTER_KEY, A_KEY, E_KEY
+from util.camera import Camera
+from data.data import VIDEO_DATASET_FILENAME
+from util.util import RenderWindow, show_frames, default_key_callback, KeyCodes
 
 DATASET_TIME_FORMAT = '%H_%M_%S__%d_%m_%Y'
 
@@ -35,7 +35,7 @@ def create_video_dataset(args):
         frames.append(frame)
 
         key = render_window.show_frame(frame, wait_key_duration=10)
-        if key == ESCAPE_KEY:
+        if key == KeyCodes.ESCAPE_KEY:
             break
 
     render_window.close()
@@ -70,12 +70,12 @@ class EditKeySupplier:
         if default_key_callback(frames_state, key):
             return True
 
-        if key == ENTER_KEY:
+        if key == KeyCodes.ENTER_KEY:
             frames_state.running = False
-        if key == A_KEY:
+        if key == KeyCodes.A_KEY:
             self.start_index = frames_state.current_index
             print('set start index = {}'.format(self.start_index), flush=True)
-        elif key == E_KEY:
+        elif key == KeyCodes.E_KEY:
             self.end_index = frames_state.current_index + 1
             print('set end index = {}'.format(self.end_index))
         else:

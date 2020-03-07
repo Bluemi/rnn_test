@@ -1,9 +1,6 @@
 import argparse
 
-from annotate_dataset import annotate_dataset
-from create_video_dataset import create_video_dataset
-from show_dataset import show_dataset
-from test_camera import test_camera
+from exec import annotate_dataset, create_video_dataset, show_dataset, test_camera
 
 
 def parse_args():
