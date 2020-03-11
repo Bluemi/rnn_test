@@ -1,6 +1,8 @@
 import numpy as np
 
 from data.data import Dataset, VideoDataset
+from util.images import draw_cross
+from util.images.draw_functions import draw_brighter
 from util.util import KeyCodes, ACTION_RIGHT_KEYS, ACTION_LEFT_KEYS, RenderWindow
 
 
@@ -64,7 +66,7 @@ def default_frame_callback(frame_state, frames):
     return frames[frame_state.current_index]
 
 
-class RenderCrossSupplier:
+class RenderAnnotationsSupplier:
     def __init__(self, annotations):
         """
         Renders the current frame and a little cross, for the annotations.
@@ -88,9 +90,16 @@ class RenderCrossSupplier:
         index = frames_state.current_index
         current_frame = frames[index].copy()
 
-        x, y = self.annotations[index].astype('int')
+        height = current_frame.shape[0]
+        width = current_frame.shape[1]
 
-        current_frame[y][x] = np.array([255, 255, 255])
+        rel_y, rel_x = self.annotations[index]
+
+        if 0 < rel_y < 1 and 0 < rel_x < 1:
+            y = int(rel_y * height)
+            x = int(rel_x * width)
+
+            draw_cross(current_frame, (y, x), draw_function=draw_brighter)
 
         return current_frame
 
@@ -124,7 +133,7 @@ def show_frames(data_source, window_title='frames', key_callback=None, mouse_cal
     elif isinstance(data_source, Dataset):
         frames = data_source.video_data
         if render_callback is None:
-            render_callback = RenderCrossSupplier(data_source.annotation_data)
+            render_callback = RenderAnnotationsSupplier(data_source.annotation_data)
     elif isinstance(data_source, VideoDataset):
         frames = data_source.video_data
     else:

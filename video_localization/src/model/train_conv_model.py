@@ -15,8 +15,18 @@ def train_conv_model(args):
     model = create_compiled_conv_model(datasets[0].get_resolution())
     model.fit(
         x=train_dataset.video_data,
-        y=train_dataset.get_normalized_annotation_data(),
+        y=train_dataset.annotation_data,
         batch_size=5,
-        epochs=3,
+        epochs=30,
         verbose=True
     )
+
+    annotations = model.predict(x=train_dataset.video_data)
+
+    print('original data\t\tnet data')
+    for real, net in zip(train_dataset.annotation_data, annotations):
+        print(real, '\t\t', net)
+
+    train_dataset.annotation_data = annotations
+
+    show_frames(train_dataset)

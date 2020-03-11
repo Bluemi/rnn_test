@@ -26,6 +26,8 @@ class Camera:
     def next_frame(self):
         """
         Gets the next frame of the camera.
+        The frame will have the shape (height, width, depth).
+        The frame has dtype int and all values are between 0 and 255.
 
         :return: The next frame
         :rtype: ndarray

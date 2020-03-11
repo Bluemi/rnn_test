@@ -7,18 +7,28 @@ from util.util import always_true
 
 VIDEO_DATASET_FILENAME = 'video_data.npy'
 ANNOTATION_DATASET_FILENAME = 'annotations.npy'
+MAX_PIXEL_VALUE = 255
 
 
 class VideoDataset:
-    def __init__(self, video_data):
+    def __init__(self, name,  video_data):
         """
         Creates a new VideoDataset.
         A VideoDataset only contains the video information, but no hand position information.
 
+        :param name: The name of the dataset
+        :type name: str
         :param video_data: The video data
         :type video_data: np.ndarray
         """
+        self.name = name
         self.video_data = video_data
+
+    def get_num_samples(self):
+        return self.video_data.shape[0]
+
+    def get_resolution(self):
+        return self.video_data.shape[1:]
 
     @staticmethod
     def from_placeholder(placeholder):
@@ -30,12 +40,12 @@ class VideoDataset:
         :return: A new VideoDataset
         :rtype: VideoDataset
         """
-        video_data = np.load(placeholder.get_video_path())
+        video_data = np.load(placeholder.get_video_path()).astype(np.float) / MAX_PIXEL_VALUE
 
-        return VideoDataset(video_data)
+        return VideoDataset(placeholder.get_basename(), video_data)
 
 
-class Dataset:
+class Dataset(VideoDataset):
     def __init__(self, name, video_data, annotation_data):
         """
         Contains the video data as well as the hand position data
@@ -47,33 +57,10 @@ class Dataset:
         :param annotation_data:
         :type annotation_data: np.ndarray
         """
-        self.name = name
-        self.video_data = video_data
+        super().__init__(name, video_data)
         self.annotation_data = annotation_data
 
         assert (video_data.shape[0] == annotation_data.shape[0])
-
-    def get_num_samples(self):
-        return self.video_data.shape[0]
-
-    def get_resolution(self):
-        return self.video_data.shape[1:]
-
-    def get_normalized_annotation_data(self):
-        """
-        Returns the annotation data normalized between 0 and 1
-
-        :return: The annotation data normalized between 0 and 1
-        :rtype: np.ndarray
-        """
-        height = self.get_resolution()[0]
-        width = self.get_resolution()[1]
-
-        normalized_annotation_data = self.annotation_data.copy()
-        normalized_annotation_data[:, 0] /= width
-        normalized_annotation_data[:, 1] /= height
-
-        return normalized_annotation_data
 
     def __str__(self):
         return self.name
@@ -94,7 +81,8 @@ class Dataset:
         if placeholder.dataset_type != DatasetPlaceholder.DatasetType.FULL_DATASET:
             raise DataError('Cant load full Dataset from video dataset')
 
-        video_data = np.load(placeholder.get_video_path())
+        # datasets are saved as int array with values between 0 and 255. Convert it to float.
+        video_data = np.load(placeholder.get_video_path()).astype(np.float) / MAX_PIXEL_VALUE
         annotations_data = np.load(placeholder.get_annotations_path())
 
         return Dataset(placeholder.get_basename(), video_data, annotations_data)
@@ -115,7 +103,7 @@ class Dataset:
         concatenated_video_data = np.concatenate(video_data)
         concatenated_annotation_data = np.concatenate(annotations)
 
-        return Dataset('train dataset', concatenated_video_data, concatenated_annotation_data)
+        return Dataset('train_dataset', concatenated_video_data, concatenated_annotation_data)
 
 
 class DatasetPlaceholder:

@@ -2,7 +2,11 @@ import argparse
 
 from data import annotate_dataset, create_video_dataset, show_dataset
 from util import test_camera
-from model import train_conv_model
+
+
+def do_train_conv_model(args):
+    from model.train_conv_model import train_conv_model
+    train_conv_model(args)
 
 
 def parse_args():
@@ -44,7 +48,7 @@ def parse_args():
         'database_directory', metavar='database-directory', type=str,
         help='The path to the database that is used for training'
     )
-    train_conv_model_parser.set_defaults(func=train_conv_model.train_conv_model)
+    train_conv_model_parser.set_defaults(func=do_train_conv_model)
 
     return parser.parse_args()
 
