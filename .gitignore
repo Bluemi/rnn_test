@@ -1,6 +1,7 @@
 .idea
 res
 /video_localization/poetry.lock
+run.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

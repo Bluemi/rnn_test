@@ -53,42 +53,6 @@ class EditMouseSupplier:
             self._set_point(frames_state, (y, x))
 
 
-class RenderCrossSupplier:
-    def __init__(self, edit_mouse_supplier):
-        """
-        Renders the current frame and a little cross, for the annotations.
-
-        :param edit_mouse_supplier: The EditMouseSupplier to get the annotations from
-        :type edit_mouse_supplier: EditMouseSupplier
-        """
-        self.edit_mouse_supplier = edit_mouse_supplier
-
-    def __call__(self, frames_state, frames):
-        """
-        Renders the current frame and a little cross, for the annotations.
-
-        :param frames_state: The current frame state
-        :type frames_state: ShowFramesState
-        :param frames: The frames to show
-        :type frames: list[np.ndarray] or np.ndarray
-        :return: The current frame
-        :rtype: np.ndarray
-        """
-        index = frames_state.current_index
-        if self.edit_mouse_supplier.is_point_set(index):
-            current_frame = frames[index].copy()
-            rel_y, rel_x = self.edit_mouse_supplier.annotations[index]
-
-            y = int(rel_y * self.edit_mouse_supplier.resolution[0])
-            x = int(rel_x * self.edit_mouse_supplier.resolution[1])
-
-            draw_cross(current_frame, (y, x), draw_function=draw_brighter)
-        else:
-            current_frame = frames[index]
-
-        return current_frame
-
-
 def annotate_frames(dataset):
     """
     Returns the full dataset.
