@@ -1,20 +1,19 @@
-import cv2
 import numpy as np
 
 from data.data import Dataset, VideoDataset
-from util.images import draw_cross, get_sub_image
+from util.images import draw_cross, get_zoomed_image, translate_position
 from util.images.draw_functions import draw_brighter
 from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWindow
 
 
 DEFAULT_ZOOM_RENDERER_OUTPUT_SIZE = (801, 801)
-DEFAULT_KEY_CALLBACK_MOVE_SPEED = 5
+DEFAULT_KEY_CALLBACK_MOVE_SPEED = 1
 
 
 class ShowFramesState:
-    def __init__(self, num_frames, resolution):
+    def __init__(self, num_frames, resolution, wait_key_duration=0):
         self.current_index = 0
-        self.wait_key_duration = 0
+        self.wait_key_duration = wait_key_duration
         self.running = True
         self.num_frames = num_frames
         self.render_position = (resolution[0]/2, resolution[1]/2)
@@ -79,8 +78,78 @@ def default_key_callback(frames_state, key):
     return True
 
 
-def default_mouse_callback(*_args):
-    pass
+class FillAnnotationsKeySupplier:
+    def __init__(self, annotations, resolution):
+        """
+        Creates a new FillAnnotationsKeySupplier.
+
+        :param annotations: The annotations to fill
+        :type annotations: np.ndarray
+        :param resolution: The video resolution as (height, width, depth). The depth parameter is optional.
+        :type resolution: tuple[int, int] or tuple[int, int, int]
+        """
+        self.annotations = annotations
+        self.resolution = resolution[:2]
+
+    def _set_point(self, current_index, render_position):
+        annotation_position = (
+            render_position[0] / self.resolution[0],
+            render_position[1] / self.resolution[1]
+        )
+        self.annotations[current_index] = annotation_position
+
+    def __call__(self, frames_state, key):
+        """
+        Changes the frames_state, depending on key and fills out the given annotations.
+
+        :param frames_state: The ShowFramesState object to handle
+        :type frames_state: ShowFramesState
+        :param key: The pressed key
+        :type key: int
+        :return: True, if the key was applied otherwise False
+        :rtype: bool
+        """
+        if key == KeyCodes.SPACE:
+            self._set_point(frames_state.current_index, frames_state.render_position)
+            frames_state.inc_index()
+            return True
+        elif key == KeyCodes.ENTER:
+            self._set_point(frames_state.current_index, frames_state.render_position)
+            return True
+        return default_key_callback(frames_state, key)
+
+
+class DefaultMouseSupplier:
+    def __init__(self):
+        """
+        Creates a nwe DefaultMouseSupplier
+        """
+        self.last_position = None
+        self.pressed = False
+
+    def __call__(self, event_type, x, y, _unused1, frames_state):
+        """
+        Moves the render position depending on mouse movements.
+
+        :param event_type: The mouse event type
+        :type event_type: int
+        :param x: The x position of the mouse
+        :type x: int
+        :param y: The y position of the mouse
+        :type y: int
+        :param frames_state: The ShowFramesStates object to handle
+        :type frames_state: ShowFramesState
+        """
+        if self.last_position is not None and self.pressed:
+            diff = (self.last_position[0] - y, self.last_position[1] - x)
+            frames_state.move(diff)
+
+        if event_type == 1:
+            self.pressed = True
+        elif event_type == 4:
+            self.pressed = False
+        elif event_type == 0:
+            self.last_position = (y, x)
 
 
 def default_frame_callback(frame_state, frames):
@@ -150,7 +219,7 @@ class ZoomRenderer:
 
     def __call__(self, frames_state, frames):
         """
-        Renders the current frame and a little cross, for the annotations.
+        Renders the current frame using zoom and render position.
 
         :param frames_state: The current frame state
         :type frames_state: ShowFramesState
@@ -160,25 +229,57 @@ class ZoomRenderer:
         :rtype: np.ndarray
         """
         current_frame = frames[frames_state.current_index]
-        scaled_image = cv2.resize(
+
+        output_image = get_zoomed_image(
             current_frame,
-            (int(current_frame.shape[0] * frames_state.zoom), int(current_frame.shape[1] * frames_state.zoom)),
-            cv2.INTER_NEAREST
+            frames_state.zoom,
+            self.output_size,
+            frames_state.render_position
         )
-
-        sub_image_size = (
-            self.output_size[0] / frames_state.zoom,
-            self.output_size[1] / frames_state.zoom
-        )
-        sub_image_position = (
-            int((frames_state.render_position[0] - sub_image_size[0] / 2) * frames_state.zoom),
-            int((frames_state.render_position[1] - sub_image_size[1] / 2) * frames_state.zoom)
-        )
-
-        output_image = get_sub_image(scaled_image, sub_image_position, self.output_size)
 
         if self.enable_cross:
             draw_cross(output_image, (self.output_size[0] // 2, self.output_size[1] // 2), draw_function=draw_brighter)
+
+        return output_image
+
+
+class ZoomAnnotationsRenderer(ZoomRenderer):
+    def __init__(self, annotations, resolution, output_size=None, enable_cross=None):
+        """
+        Creates a new ZoomAnnotationsRenderer.
+
+        :param annotations: The annotations to render
+        :param resolution: The resolution of the video as (height, width, depth). The depth parameter is optional.
+        :type resolution: tuple[int, int, int]
+        :param output_size: The size for the output image
+        :type output_size: tuple[int, int]
+        """
+        super().__init__(output_size, enable_cross)
+        self.annotations = annotations
+        self.resolution = resolution[:2]
+
+    def __call__(self, frames_state, frames):
+        """
+        Renders the current frame using zoom and render position. Draws a cross at the annotation position.
+
+        :param frames_state: The current frame state
+        :type frames_state: ShowFramesState
+        :param frames: The frames to show
+        :type frames: list[np.ndarray] or np.ndarray
+        :return: The current frame
+        :rtype: np.ndarray
+        """
+        output_image = super().__call__(frames_state, frames)
+        current_annotations = self.annotations[frames_state.current_index]
+
+        if not (np.isnan(current_annotations[0]) or np.isnan(current_annotations[1])):
+            draw_position = translate_position(
+                (current_annotations[0] * self.resolution[0], current_annotations[1] * self.resolution[1]),
+                self.output_size,
+                frames_state.render_position,
+                frames_state.zoom
+            )
+            draw_cross(output_image, tuple(int(x) for x in draw_position), draw_function=draw_brighter)
 
         return output_image
 
@@ -240,13 +341,13 @@ def _show_frames_impl(frames, window_title='frames', key_callback=None, mouse_ca
     :return: Returns the control in its end state
     :rtype: ShowFramesState
     """
-    frames_state = ShowFramesState(len(frames), frames[0].shape)
+    frames_state = ShowFramesState(len(frames), frames[0].shape, wait_key_duration=10)
 
     if key_callback is None:
         key_callback = default_key_callback
 
     if mouse_callback is None:
-        mouse_callback = default_mouse_callback
+        mouse_callback = DefaultMouseSupplier()
 
     if frame_callback is None:
         frame_callback = default_frame_callback

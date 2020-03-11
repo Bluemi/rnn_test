@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 
 
@@ -95,3 +96,78 @@ def get_sub_image(image, position, size):
     image_copy[y_offset:y_offset + sub_image.shape[0], x_offset:x_offset + sub_image.shape[1]] = sub_image
 
     return image_copy
+
+
+def get_zoomed_image(source_image, zoom, output_size, render_position):
+    """
+    Extracts an sub image from the given source image.
+    The output image will be zoomed in by zoom, have the given output size and will be centered around the given render
+    position relative to the source image.
+
+    :param source_image: The source image to extract from
+    :type source_image: np.ndarray
+    :param zoom: The zoom factor (1 == no zoom, 2 == size doubled)
+    :type zoom: float
+    :param output_size: The size of the output image (height, width).
+    :type output_size: tuple[int, int]
+    :param render_position: The position in the source image (y, x)
+    :type render_position: tuple[int, int]
+    :return: The extracted sub image
+    :rtype: np.ndarray
+    """
+    precise_sub_image_size = (
+        output_size[0] / zoom,
+        output_size[1] / zoom
+    )
+    rounded_sub_image_size = tuple(int(x) + 1 for x in precise_sub_image_size)
+
+    precise_sub_image_position = (
+        render_position[0] - (precise_sub_image_size[0] / 2),
+        render_position[1] - (precise_sub_image_size[1] / 2)
+    )
+    rounded_sub_image_position = tuple(int(x) + 1 for x in precise_sub_image_position)
+
+    tmp_sub_image = get_sub_image(source_image, rounded_sub_image_position, rounded_sub_image_size)
+
+    tmp_sub_image_scaled_size = tuple(int(x * zoom) for x in rounded_sub_image_size)
+
+    scaled_tmp_sub_image = cv2.resize(tmp_sub_image, tmp_sub_image_scaled_size, cv2.INTER_NEAREST)
+
+    border_position = (
+        int((precise_sub_image_position[0] - rounded_sub_image_position[0]) * zoom),
+        int((precise_sub_image_position[1] - rounded_sub_image_position[1]) * zoom),
+    )
+
+    output_image = get_sub_image(scaled_tmp_sub_image, border_position, output_size)
+
+    return output_image
+
+
+def translate_position(source_position, output_size, render_position, zoom=1.0):
+    """
+    Translates the given position into a position relative to the output image.
+
+    :param source_position: The position in the original image
+    :type source_position: tuple[float, float]
+    :param output_size: The size of the output image
+    :type output_size: tuple[int, int]
+    :param render_position: The render position relative to the source image
+    :type render_position: tuple[float, float]
+    :param zoom: The zoom factor
+    :type zoom: float
+    :return: The translated position
+    :rtype: tuple[float, float]
+    """
+    precise_sub_image_size = (
+        output_size[0] / zoom,
+        output_size[1] / zoom
+    )
+    precise_sub_image_position = (
+        render_position[0] - (precise_sub_image_size[0] / 2),
+        render_position[1] - (precise_sub_image_size[1] / 2)
+    )
+    offset = (
+        (source_position[0] - precise_sub_image_position[0]) * zoom,
+        (source_position[1] - precise_sub_image_position[1]) * zoom
+    )
+    return offset

@@ -7,4 +7,4 @@ def show_dataset(args):
 
     dataset = dataset_placeholder.load()
 
-    show_frames(dataset, render_callback=ZoomRenderer(enable_cross=True))
+    show_frames(dataset)
