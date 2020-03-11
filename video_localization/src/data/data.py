@@ -1,6 +1,5 @@
 import os
 from enum import Enum
-from collections import Callable
 
 import numpy as np
 
@@ -60,6 +59,22 @@ class Dataset:
     def get_resolution(self):
         return self.video_data.shape[1:]
 
+    def get_normalized_annotation_data(self):
+        """
+        Returns the annotation data normalized between 0 and 1
+
+        :return: The annotation data normalized between 0 and 1
+        :rtype: np.ndarray
+        """
+        height = self.get_resolution()[0]
+        width = self.get_resolution()[1]
+
+        normalized_annotation_data = self.annotation_data.copy()
+        normalized_annotation_data[:, 0] /= width
+        normalized_annotation_data[:, 1] /= height
+
+        return normalized_annotation_data
+
     def __str__(self):
         return self.name
 
@@ -83,6 +98,24 @@ class Dataset:
         annotations_data = np.load(placeholder.get_annotations_path())
 
         return Dataset(placeholder.get_basename(), video_data, annotations_data)
+
+    @staticmethod
+    def concatenate(datasets):
+        """
+        Returns the given datasets concatenated into one np array.
+
+        :param datasets: The datasets to concatenate
+        :type datasets: list[Dataset]
+        :return: A new Dataset that contains all given datasets
+        :rtype: Dataset
+        """
+        video_data = list(map(lambda dataset: dataset.video_data, datasets))
+        annotations = list(map(lambda dataset: dataset.annotation_data, datasets))
+
+        concatenated_video_data = np.concatenate(video_data)
+        concatenated_annotation_data = np.concatenate(annotations)
+
+        return Dataset('train dataset', concatenated_video_data, concatenated_annotation_data)
 
 
 class DatasetPlaceholder:

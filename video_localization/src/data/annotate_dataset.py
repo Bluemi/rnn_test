@@ -1,8 +1,8 @@
 import numpy as np
 
 
-from data.data import DatasetPlaceholder, chose_dataset_placeholder, VideoDataset, Dataset
-from util.util import show_frames
+from data.data import DatasetPlaceholder, chose_dataset_placeholder, VideoDataset
+from util.show_frames import show_frames
 
 
 def annotate_dataset(args):
@@ -106,6 +106,6 @@ def annotate_frames(dataset):
     mouse_supplier = EditMouseSupplier(len(frames))
     render_supplier = RenderCrossSupplier(mouse_supplier)
 
-    show_frames(dataset.video_data, 'annotate dataset', mouse_callback=mouse_supplier, frame_callback=render_supplier)
+    show_frames(dataset.video_data, 'annotate dataset', mouse_callback=mouse_supplier, render_callback=render_supplier)
 
     return mouse_supplier.annotations

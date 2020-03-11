@@ -5,7 +5,8 @@ import numpy as np
 
 from util.camera import Camera
 from data.data import VIDEO_DATASET_FILENAME
-from util.util import RenderWindow, show_frames, default_key_callback, KeyCodes
+from util.show_frames import default_key_callback, show_frames
+from util.util import RenderWindow, KeyCodes
 
 DATASET_TIME_FORMAT = '%H_%M_%S__%d_%m_%Y'
 
