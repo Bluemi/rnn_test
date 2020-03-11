@@ -19,7 +19,7 @@ def test_camera(_args):
         frame = camera.next_frame()
 
         key = render_window.show_frame(frame, wait_key_duration=10)
-        if key == KeyCodes.ESCAPE_KEY:
+        if key == KeyCodes.ESCAPE:
             break
         elif key != -1:
             print('key: {}'.format(key))

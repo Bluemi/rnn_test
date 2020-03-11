@@ -36,7 +36,7 @@ def create_video_dataset(args):
         frames.append(frame)
 
         key = render_window.show_frame(frame, wait_key_duration=10)
-        if key == KeyCodes.ESCAPE_KEY:
+        if key == KeyCodes.ESCAPE:
             break
 
     render_window.close()
@@ -71,12 +71,12 @@ class EditKeySupplier:
         if default_key_callback(frames_state, key):
             return True
 
-        if key == KeyCodes.ENTER_KEY:
+        if key == KeyCodes.ENTER:
             frames_state.running = False
-        if key == KeyCodes.A_KEY:
+        if key == KeyCodes.A:
             self.start_index = frames_state.current_index
             print('set start index = {}'.format(self.start_index), flush=True)
-        elif key == KeyCodes.E_KEY:
+        elif key == KeyCodes.E:
             self.end_index = frames_state.current_index + 1
             print('set end index = {}'.format(self.end_index))
         else:

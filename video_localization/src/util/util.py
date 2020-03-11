@@ -7,19 +7,28 @@ import numpy as np
 
 
 class KeyCodes(IntEnum):
-    ESCAPE_KEY = 27
-    ENTER_KEY = 13
-    SPACE_KEY = 32
-    LEFT_KEY = 81
-    RIGHT_KEY = 83
-    L_KEY = 108
-    H_KEY = 104
-    A_KEY = 97
-    E_KEY = 101
+    BACK_SPACE = 8
+    ENTER = 13
+    ESCAPE = 27
+    SPACE = 32
+    PLUS = 43
+    MINUS = 45
+    LEFT = 81
+    RIGHT = 83
+    A = 97
+    B = 98
+    E = 101
+    H = 104
+    I = 105
+    J = 106
+    K = 107
+    L = 108
+    N = 110
+    U = 117
 
 
-ACTION_LEFT_KEYS = (KeyCodes.LEFT_KEY, KeyCodes.H_KEY)
-ACTION_RIGHT_KEYS = (KeyCodes.RIGHT_KEY, KeyCodes.L_KEY, KeyCodes.SPACE_KEY)
+ACTION_PREVIOUS_KEYS = (KeyCodes.LEFT, KeyCodes.BACK_SPACE, KeyCodes.B)
+ACTION_NEXT_KEYS = (KeyCodes.RIGHT, KeyCodes.SPACE, KeyCodes.N)
 
 
 class FPS:

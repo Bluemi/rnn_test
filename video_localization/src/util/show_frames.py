@@ -1,17 +1,24 @@
+import cv2
 import numpy as np
 
 from data.data import Dataset, VideoDataset
-from util.images import draw_cross
+from util.images import draw_cross, get_sub_image
 from util.images.draw_functions import draw_brighter
-from util.util import KeyCodes, ACTION_RIGHT_KEYS, ACTION_LEFT_KEYS, RenderWindow
+from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWindow
+
+
+DEFAULT_ZOOM_RENDERER_OUTPUT_SIZE = (801, 801)
+DEFAULT_KEY_CALLBACK_MOVE_SPEED = 5
 
 
 class ShowFramesState:
-    def __init__(self, num_frames):
+    def __init__(self, num_frames, resolution):
         self.current_index = 0
         self.wait_key_duration = 0
         self.running = True
         self.num_frames = num_frames
+        self.render_position = (resolution[0]/2, resolution[1]/2)
+        self.zoom = 1.0
 
     def inc_index(self):
         if self.current_index < self.num_frames - 1:
@@ -25,6 +32,18 @@ class ShowFramesState:
         else:
             print('begin of video', flush=True)
 
+    def zoom_in(self, zoom_factor=1.5):
+        self.zoom *= zoom_factor
+
+    def zoom_out(self, zoom_factor=1.5):
+        self.zoom /= zoom_factor
+
+    def move(self, direction):
+        self.render_position = (
+            self.render_position[0] + direction[0] / self.zoom,
+            self.render_position[1] + direction[1] / self.zoom
+        )
+
 
 def default_key_callback(frames_state, key):
     """
@@ -37,12 +56,24 @@ def default_key_callback(frames_state, key):
     :return: True, if the key was applied otherwise False
     :rtype: bool
     """
-    if key == KeyCodes.ESCAPE_KEY:
+    if key in (KeyCodes.ESCAPE, KeyCodes.ENTER):
         frames_state.running = False
-    elif key in ACTION_RIGHT_KEYS:
+    elif key in ACTION_NEXT_KEYS:
         frames_state.inc_index()
-    elif key in ACTION_LEFT_KEYS:
+    elif key in ACTION_PREVIOUS_KEYS:
         frames_state.dec_index()
+    elif key == KeyCodes.H:
+        frames_state.move((0, -DEFAULT_KEY_CALLBACK_MOVE_SPEED))
+    elif key == KeyCodes.J:
+        frames_state.move((DEFAULT_KEY_CALLBACK_MOVE_SPEED, 0))
+    elif key == KeyCodes.K:
+        frames_state.move((-DEFAULT_KEY_CALLBACK_MOVE_SPEED, 0))
+    elif key == KeyCodes.L:
+        frames_state.move((0, DEFAULT_KEY_CALLBACK_MOVE_SPEED))
+    elif key == KeyCodes.U:
+        frames_state.zoom_in()
+    elif key == KeyCodes.I:
+        frames_state.zoom_out()
     else:
         return False
     return True
@@ -104,6 +135,54 @@ class RenderAnnotationsSupplier:
         return current_frame
 
 
+class ZoomRenderer:
+    def __init__(self, output_size=None, enable_cross=False):
+        """
+        Creates a new ZoomRenderer.
+
+        :param output_size: The size for the output image
+        :type output_size: tuple[int, int]
+        :param enable_cross: If True, the output image contains a cross in the center
+        :type enable_cross: bool
+        """
+        self.output_size = output_size or DEFAULT_ZOOM_RENDERER_OUTPUT_SIZE
+        self.enable_cross = enable_cross
+
+    def __call__(self, frames_state, frames):
+        """
+        Renders the current frame and a little cross, for the annotations.
+
+        :param frames_state: The current frame state
+        :type frames_state: ShowFramesState
+        :param frames: The frames to show
+        :type frames: list[np.ndarray] or np.ndarray
+        :return: The current frame
+        :rtype: np.ndarray
+        """
+        current_frame = frames[frames_state.current_index]
+        scaled_image = cv2.resize(
+            current_frame,
+            (int(current_frame.shape[0] * frames_state.zoom), int(current_frame.shape[1] * frames_state.zoom)),
+            cv2.INTER_NEAREST
+        )
+
+        sub_image_size = (
+            self.output_size[0] / frames_state.zoom,
+            self.output_size[1] / frames_state.zoom
+        )
+        sub_image_position = (
+            int((frames_state.render_position[0] - sub_image_size[0] / 2) * frames_state.zoom),
+            int((frames_state.render_position[1] - sub_image_size[1] / 2) * frames_state.zoom)
+        )
+
+        output_image = get_sub_image(scaled_image, sub_image_position, self.output_size)
+
+        if self.enable_cross:
+            draw_cross(output_image, (self.output_size[0] // 2, self.output_size[1] // 2), draw_function=draw_brighter)
+
+        return output_image
+
+
 def show_frames(data_source, window_title='frames', key_callback=None, mouse_callback=None, render_callback=None):
     """
     Shows the given frames
@@ -161,7 +240,7 @@ def _show_frames_impl(frames, window_title='frames', key_callback=None, mouse_ca
     :return: Returns the control in its end state
     :rtype: ShowFramesState
     """
-    frames_state = ShowFramesState(len(frames))
+    frames_state = ShowFramesState(len(frames), frames[0].shape)
 
     if key_callback is None:
         key_callback = default_key_callback

@@ -53,3 +53,45 @@ def draw_cross(frame, position, size=3, draw_function=None):
         pos = (position[0], position[1]-size+x)
         if x != size:
             draw_point(frame, pos, draw_function)
+
+
+def get_sub_image(image, position, size):
+    """
+    Returns a subset of the given image. Parts that which are out of bounds of the source image are filled with zeros.
+    The returned sub image will never share memory with the source image.
+
+    :param image: The image to get the sub_image from
+    :type image: np.ndarray
+    :param position: The left top position of the sub image in the source image, given as tuple (y, x)
+    :type position: tuple[int, int]
+    :param size: The (height, width) tuple defining the size of the sub image. Should always be positive
+    :type size: tuple[int, int]
+    :return: the defined sub image
+    :rtype: np.ndarray
+    """
+    if len(image.shape) == 2:
+        image_copy_shape = size
+    elif len(image.shape) == 3:
+        image_copy_shape = (*size, image.shape[2])
+    else:
+        raise ValueError('Shape of source image should have len 2 or 3')
+
+    image_copy = np.zeros(image_copy_shape, dtype=np.float)
+    sub_image = image[
+        np.maximum(position[0], 0):np.maximum(position[0]+size[0], 0),
+        np.maximum(position[1], 0):np.maximum(position[1]+size[1], 0)
+    ]
+
+    if position[0] >= 0:
+        y_offset = 0
+    else:
+        y_offset = -position[0]
+
+    if position[1] >= 0:
+        x_offset = 0
+    else:
+        x_offset = -position[1]
+
+    image_copy[y_offset:y_offset + sub_image.shape[0], x_offset:x_offset + sub_image.shape[1]] = sub_image
+
+    return image_copy

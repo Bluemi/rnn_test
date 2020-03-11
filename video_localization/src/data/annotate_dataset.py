@@ -3,7 +3,7 @@ import numpy as np
 from data.data import DatasetPlaceholder, chose_dataset_placeholder, VideoDataset
 from util.images import draw_cross
 from util.images.draw_functions import draw_brighter
-from util.show_frames import show_frames, RenderAnnotationsSupplier
+from util.show_frames import show_frames, RenderAnnotationsSupplier, ZoomRenderer
 
 
 def annotate_dataset(args):
@@ -63,9 +63,11 @@ def annotate_frames(dataset):
     :rtype: np.ndarray
     """
     frames = dataset.video_data
-    mouse_supplier = EditMouseSupplier(len(frames), dataset.get_resolution())
-    render_supplier = RenderAnnotationsSupplier(mouse_supplier.annotations)
 
-    show_frames(dataset.video_data, 'annotate dataset', mouse_callback=mouse_supplier, render_callback=render_supplier)
+    annotations = np.zeros((len(frames), 2), dtype=np.float) + np.nan
+    # mouse_supplier = EditMouseSupplier(len(frames), dataset.get_resolution())
+    render_supplier = ZoomRenderer(annotations)
 
-    return mouse_supplier.annotations
+    show_frames(dataset.video_data, 'annotate dataset', render_callback=render_supplier)
+
+    return annotations
