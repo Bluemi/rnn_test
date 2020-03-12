@@ -44,6 +44,12 @@ class VideoDataset:
 
         return VideoDataset(placeholder.get_basename(), video_data)
 
+    def is_full_dataset(self):
+        return False
+
+    def is_video_dataset(self):
+        return True
+
 
 class Dataset(VideoDataset):
     def __init__(self, name, video_data, annotation_data):
@@ -104,6 +110,12 @@ class Dataset(VideoDataset):
         concatenated_annotation_data = np.concatenate(annotations)
 
         return Dataset('train_dataset', concatenated_video_data, concatenated_annotation_data)
+
+    def is_full_dataset(self):
+        return True
+
+    def is_video_dataset(self):
+        return False
 
 
 class DatasetPlaceholder:

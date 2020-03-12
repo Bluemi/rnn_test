@@ -31,6 +31,9 @@ def parse_args():
     annotate_dataset_parser.add_argument(
         'database_directory', metavar='database-directory', type=str, help='The location of the database'
     )
+    annotate_dataset_parser.add_argument(
+        '--change', action='store_true', help='If set already present annotations can be changed'
+    )
     annotate_dataset_parser.set_defaults(func=annotate_dataset.annotate_dataset)
 
     # show dataset

@@ -98,6 +98,28 @@ class FillAnnotationsKeySupplier:
         )
         self.annotations[current_index] = annotation_position
 
+    def _annotation_finished(self):
+        """
+        Returns True, if all annotations are not nan
+
+        :return: True, if all annotations are not nan, otherwise False
+        :rtype: bool
+        """
+        return np.all(np.isfinite(self.annotations))
+
+    def _get_missing_annotation_index(self):
+        """
+        Returns the first index, where annotations are missing. If no annotations are missing None is returned.
+
+        :return: first index with missing annotations, otherwise None
+        :rtype: int or None
+        """
+        for index, annotation in enumerate(self.annotations):
+            if np.all(np.isnan(annotation)):
+                return index
+
+        return None
+
     def __call__(self, frames_state, key):
         """
         Changes the frames_state, depending on key and fills out the given annotations.
@@ -112,11 +134,23 @@ class FillAnnotationsKeySupplier:
         if key == KeyCodes.SPACE:
             self._set_point(frames_state.current_index, frames_state.render_position)
             frames_state.inc_index()
-            return True
         elif key == KeyCodes.ENTER:
             self._set_point(frames_state.current_index, frames_state.render_position)
-            return True
-        return default_key_callback(frames_state, key)
+        elif key == KeyCodes.ESCAPE:
+            if self._annotation_finished():
+                frames_state.running = False
+            else:
+                missing_index = self._get_missing_annotation_index()
+                print('Index {} is not annotated.'.format(missing_index))
+        elif key == KeyCodes.W:
+            missing_index = self._get_missing_annotation_index()
+            if missing_index is not None:
+                frames_state.current_index = missing_index
+            else:
+                print('everything is annotated')
+        else:
+            return default_key_callback(frames_state, key)
+        return True
 
 
 class DefaultMouseSupplier:
@@ -284,7 +318,14 @@ class ZoomAnnotationsRenderer(ZoomRenderer):
         return output_image
 
 
-def show_frames(data_source, window_title='frames', key_callback=None, mouse_callback=None, render_callback=None):
+def show_frames(
+        data_source,
+        window_title='frames',
+        key_callback=None,
+        mouse_callback=None,
+        render_callback=None,
+        window_position=None
+):
     """
     Shows the given frames
 
@@ -300,6 +341,8 @@ def show_frames(data_source, window_title='frames', key_callback=None, mouse_cal
     :type mouse_callback: Callable or None
     :param render_callback: Callable that returns the ndarray to render
     :type render_callback: Callable or None
+    :param window_position: The initial position of the window
+    :type window_position: tuple[int, int] or None
 
     :raise TypeError: If data_source has invalid type
     """
@@ -319,10 +362,17 @@ def show_frames(data_source, window_title='frames', key_callback=None, mouse_cal
     else:
         raise TypeError('Cant show frames for data source of type "{}"'.format(type(data_source).__name__))
 
-    _show_frames_impl(frames, window_title, key_callback, mouse_callback, render_callback)
+    _show_frames_impl(frames, window_title, key_callback, mouse_callback, render_callback, window_position)
 
 
-def _show_frames_impl(frames, window_title='frames', key_callback=None, mouse_callback=None, frame_callback=None):
+def _show_frames_impl(
+        frames,
+        window_title='frames',
+        key_callback=None,
+        mouse_callback=None,
+        frame_callback=None,
+        window_position=None
+):
     """
     Shows the given frames
 
@@ -337,6 +387,8 @@ def _show_frames_impl(frames, window_title='frames', key_callback=None, mouse_ca
     :type mouse_callback: Callable or None
     :param frame_callback: Callable that returns the ndarray to render
     :type frame_callback: Callable or None
+    :param window_position: The initial window position given as tuple (y, x)
+    :type window_position: tuple[int, int] or None
 
     :return: Returns the control in its end state
     :rtype: ShowFramesState
@@ -352,7 +404,7 @@ def _show_frames_impl(frames, window_title='frames', key_callback=None, mouse_ca
     if frame_callback is None:
         frame_callback = default_frame_callback
 
-    window = RenderWindow(window_title)
+    window = RenderWindow(window_title, position=window_position)
     if mouse_callback is not None:
         window.set_mouse_callback(mouse_callback, frames_state)
 

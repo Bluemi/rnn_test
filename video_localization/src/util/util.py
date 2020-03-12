@@ -25,6 +25,7 @@ class KeyCodes(IntEnum):
     L = 108
     N = 110
     U = 117
+    W = 119
 
 
 ACTION_PREVIOUS_KEYS = (KeyCodes.LEFT, KeyCodes.BACK_SPACE, KeyCodes.B)
@@ -66,15 +67,19 @@ class FPS:
 
 
 class RenderWindow:
-    def __init__(self, title):
+    def __init__(self, title, position=None):
         """
         Creates a new window with the given title
 
         :param title: The title of the window
         :type title: str
+        :param position: The initial position of the window given as (y, x)
+        :type position: tuple[int, int] or None
         """
         self.title = title
         cv2.namedWindow(title)
+        if position is not None:
+            cv2.moveWindow(title, position[1], position[0])
 
     def show_frame(self, frame, wait_key_duration=0):
         """

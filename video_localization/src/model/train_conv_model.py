@@ -23,10 +23,6 @@ def train_conv_model(args):
 
     annotations = model.predict(x=train_dataset.video_data)
 
-    print('original data\t\tnet data')
-    for real, net in zip(train_dataset.annotation_data, annotations):
-        print(real, '\t\t', net)
-
     train_dataset.annotation_data = annotations
 
     show_frames(train_dataset)
