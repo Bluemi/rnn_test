@@ -48,8 +48,15 @@ def parse_args():
         'train-conv-model', description='Trains a convolutional model on a given database'
     )
     train_conv_model_parser.add_argument(
-        'database_directory', metavar='database-directory', type=str,
+        'train_data', metavar='train-data', type=str,
         help='The path to the database that is used for training'
+    )
+    train_conv_model_parser.add_argument(
+        '--eval-data', type=str, help='The path to the database that is used for evaluation'
+    )
+    train_conv_model_parser.add_argument(
+        '--show', action='store_true',
+        help='If set the predictions of the model are shown using the evaluation data, if present'
     )
     train_conv_model_parser.set_defaults(func=do_train_conv_model)
 

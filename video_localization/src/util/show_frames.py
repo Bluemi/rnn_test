@@ -2,12 +2,13 @@ import numpy as np
 
 from data.data import Dataset, VideoDataset
 from util.images import draw_cross, get_zoomed_image, translate_position
-from util.images.draw_functions import draw_brighter
+from util.images.draw_functions import draw_brighter, create_draw_addition
 from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWindow
 
 
 DEFAULT_ZOOM_RENDERER_OUTPUT_SIZE = (801, 801)
 DEFAULT_KEY_CALLBACK_MOVE_SPEED = 1
+DEFAULT_ANNOTATION_COLORS = [np.array([0.1, 0.4, 0.1]), np.array([0.1, 0.1, 0.4]), np.array([0.5, 0.1, 0.1])]
 
 
 class ShowFramesState:
@@ -278,19 +279,27 @@ class ZoomRenderer:
 
 
 class ZoomAnnotationsRenderer(ZoomRenderer):
-    def __init__(self, annotations, resolution, output_size=None, enable_cross=None):
+    def __init__(self, annotations, resolution, output_size=None, enable_cross=None, annotation_colors=None):
         """
         Creates a new ZoomAnnotationsRenderer.
 
-        :param annotations: The annotations to render
+        :param annotations: The annotations to render. Can be given as list of annotations or single annotations as
+                            np.ndarray
+        :type annotations: list[np.ndarray] or np.ndarray
         :param resolution: The resolution of the video as (height, width, depth). The depth parameter is optional.
         :type resolution: tuple[int, int, int]
         :param output_size: The size for the output image
         :type output_size: tuple[int, int]
+        :param annotation_colors: The colors to use for the annotations
+        :type annotation_colors: list[np.ndarray] or None
         """
         super().__init__(output_size, enable_cross)
-        self.annotations = annotations
+        if isinstance(annotations, list):
+            self.annotations = annotations
+        elif isinstance(annotations, np.ndarray):
+            self.annotations = [annotations]
         self.resolution = resolution[:2]
+        self.annotation_colors = annotation_colors or DEFAULT_ANNOTATION_COLORS
 
     def __call__(self, frames_state, frames):
         """
@@ -304,16 +313,22 @@ class ZoomAnnotationsRenderer(ZoomRenderer):
         :rtype: np.ndarray
         """
         output_image = super().__call__(frames_state, frames)
-        current_annotations = self.annotations[frames_state.current_index]
 
-        if not (np.isnan(current_annotations[0]) or np.isnan(current_annotations[1])):
-            draw_position = translate_position(
-                (current_annotations[0] * self.resolution[0], current_annotations[1] * self.resolution[1]),
-                self.output_size,
-                frames_state.render_position,
-                frames_state.zoom
-            )
-            draw_cross(output_image, tuple(int(x) for x in draw_position), draw_function=draw_brighter)
+        for annotations, annotation_color in zip(self.annotations, self.annotation_colors):
+            current_annotations = annotations[frames_state.current_index]
+
+            if not (np.isnan(current_annotations[0]) or np.isnan(current_annotations[1])):
+                draw_position = translate_position(
+                    (current_annotations[0] * self.resolution[0], current_annotations[1] * self.resolution[1]),
+                    self.output_size,
+                    frames_state.render_position,
+                    frames_state.zoom
+                )
+                draw_cross(
+                    output_image,
+                    tuple(int(x) for x in draw_position),
+                    draw_function=create_draw_addition(annotation_color)
+                )
 
         return output_image
 

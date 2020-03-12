@@ -117,6 +117,22 @@ class Dataset(VideoDataset):
     def is_video_dataset(self):
         return False
 
+    @staticmethod
+    def load_database(database_directory):
+        """
+        Loads all annotated datasets from the given base directory.
+
+        :param database_directory: The database directory to load
+        :type database_directory: str
+        :return: A new Dataset loaded from the given directory
+        :rtype: Dataset
+        """
+        dataset_placeholders = DatasetPlaceholder.list_database(
+            database_directory, dataset_filter=DatasetPlaceholder.is_full_dataset
+        )
+        datasets = list(map(Dataset.from_placeholder, dataset_placeholders))
+        return Dataset.concatenate(datasets)
+
 
 class DatasetPlaceholder:
     class DatasetType(Enum):

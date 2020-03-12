@@ -1,28 +1,33 @@
-from data.data import DatasetPlaceholder, Dataset
+from data.data import Dataset
 from model.conv_model import create_compiled_conv_model
-from util.show_frames import show_frames
+from util.show_frames import show_frames, ZoomAnnotationsRenderer
 
 
 def train_conv_model(args):
-    dataset_placeholders = DatasetPlaceholder.list_database(
-        args.database_directory, dataset_filter=DatasetPlaceholder.is_full_dataset
-    )
+    train_dataset = Dataset.load_database(args.train_data)
+    eval_dataset = None
+    if args.eval_data is not None:
+        eval_dataset = Dataset.load_database(args.eval_data)
 
-    datasets = list(map(Dataset.from_placeholder, dataset_placeholders))
-
-    train_dataset = Dataset.concatenate(datasets)
-
-    model = create_compiled_conv_model(datasets[0].get_resolution())
+    model = create_compiled_conv_model(train_dataset.get_resolution())
     model.fit(
         x=train_dataset.video_data,
         y=train_dataset.annotation_data,
-        batch_size=5,
-        epochs=30,
+        validation_data=(eval_dataset.video_data, eval_dataset.annotation_data) if eval_dataset else None,
+        batch_size=30,
+        epochs=40,
         verbose=True
     )
 
-    annotations = model.predict(x=train_dataset.video_data)
+    if args.show:
+        show_dataset = eval_dataset or train_dataset
 
-    train_dataset.annotation_data = annotations
+        annotations = model.predict(x=show_dataset.video_data)
 
-    show_frames(train_dataset)
+        show_frames(
+            show_dataset,
+            render_callback=ZoomAnnotationsRenderer(
+                [show_dataset.annotation_data, annotations],
+                train_dataset.get_resolution()
+            )
+        )
