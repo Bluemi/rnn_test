@@ -30,6 +30,9 @@ class VideoDataset:
     def get_resolution(self):
         return self.video_data.shape[1:]
 
+    def get_num_bytes(self):
+        return self.video_data.nbytes
+
     @staticmethod
     def from_placeholder(placeholder):
         """
@@ -74,6 +77,9 @@ class Dataset(VideoDataset):
     def __repr__(self):
         return 'Dataset<{}>'.format(self.name)
 
+    def get_num_bytes(self):
+        return self.video_data.nbytes + self.annotation_data.nbytes
+
     @staticmethod
     def from_placeholder(placeholder):
         """
@@ -88,7 +94,7 @@ class Dataset(VideoDataset):
             raise DataError('Cant load full Dataset from video dataset')
 
         # datasets are saved as int array with values between 0 and 255. Convert it to float.
-        video_data = np.load(placeholder.get_video_path()).astype(np.float) / MAX_PIXEL_VALUE
+        video_data = np.load(placeholder.get_video_path()).astype(np.float32) / MAX_PIXEL_VALUE
         annotations_data = np.load(placeholder.get_annotations_path())
 
         return Dataset(placeholder.get_basename(), video_data, annotations_data)

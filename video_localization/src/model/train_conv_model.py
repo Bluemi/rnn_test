@@ -5,17 +5,20 @@ from util.show_frames import show_frames, ZoomAnnotationsRenderer
 
 def train_conv_model(args):
     train_dataset = Dataset.load_database(args.train_data)
+
     eval_dataset = None
     if args.eval_data is not None:
         eval_dataset = Dataset.load_database(args.eval_data)
 
     model = create_compiled_conv_model(train_dataset.get_resolution())
+
+    model.summary()
     model.fit(
         x=train_dataset.video_data,
         y=train_dataset.annotation_data,
         validation_data=(eval_dataset.video_data, eval_dataset.annotation_data) if eval_dataset else None,
         batch_size=30,
-        epochs=40,
+        epochs=10,
         verbose=True
     )
 

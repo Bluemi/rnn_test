@@ -2,7 +2,7 @@ import numpy as np
 
 from data.data import Dataset, VideoDataset
 from util.images import draw_cross, get_zoomed_image, translate_position
-from util.images.draw_functions import draw_brighter, create_draw_addition
+from util.images.draw_functions import create_draw_addition, draw_addition
 from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWindow
 
 
@@ -234,7 +234,7 @@ class RenderAnnotationsSupplier:
             y = int(rel_y * height)
             x = int(rel_x * width)
 
-            draw_cross(current_frame, (y, x), draw_function=draw_brighter)
+            draw_cross(current_frame, (y, x), draw_function=draw_addition)
 
         return current_frame
 
@@ -273,7 +273,7 @@ class ZoomRenderer:
         )
 
         if self.enable_cross:
-            draw_cross(output_image, (self.output_size[0] // 2, self.output_size[1] // 2), draw_function=draw_brighter)
+            draw_cross(output_image, (self.output_size[0] // 2, self.output_size[1] // 2), draw_function=draw_addition)
 
         return output_image
 
