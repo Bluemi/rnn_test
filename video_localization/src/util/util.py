@@ -17,6 +17,7 @@ class KeyCodes(IntEnum):
     RIGHT = 83
     A = 97
     B = 98
+    C = 99
     E = 101
     H = 104
     I = 105
@@ -24,6 +25,7 @@ class KeyCodes(IntEnum):
     K = 107
     L = 108
     N = 110
+    T = 116
     U = 117
     W = 119
 

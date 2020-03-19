@@ -7,7 +7,7 @@ from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWi
 
 
 DEFAULT_ZOOM_RENDERER_OUTPUT_SIZE = (801, 801)
-DEFAULT_KEY_CALLBACK_MOVE_SPEED = 1
+DEFAULT_KEY_CALLBACK_MOVE_SPEED = 2
 DEFAULT_ANNOTATION_COLORS = [np.array([0.1, 0.4, 0.1]), np.array([0.1, 0.1, 0.4]), np.array([0.5, 0.1, 0.1])]
 
 
@@ -121,6 +121,67 @@ class FillAnnotationsKeySupplier:
 
         return None
 
+    def _center(self, frames_state):
+        """
+        Centers the screen to the current annotation.
+
+        :param frames_state: The current frame state
+        :type frames_state: ShowFramesState
+        """
+        current_annotations = self.annotations[frames_state.current_index]
+        if np.all(np.isfinite(current_annotations)):
+            frames_state.render_position = tuple(current_annotations * self.resolution)
+
+    def _interpolate(self, current_index):
+        """
+        Autocompletes not annotated frames.
+
+        :param current_index: The current frame index
+        :type current_index: int
+        """
+        start_index = current_index - 1
+        while not self._is_annotated(start_index) and start_index >= 0:
+            start_index -= 1
+
+        if start_index < 0:
+            print('No earlier interpolation frame detected')
+            return
+
+        if not self._is_annotated(current_index):
+            print('current frame not annotated')
+            return
+
+        start_point = self.annotations[start_index]
+        end_point = self.annotations[current_index]
+
+        self.annotations[start_index:current_index+1] = np.linspace(start_point, end_point, current_index-start_index+1)
+
+    def _interpolate_forward(self, frames_state):
+        """
+        Sets the render position to match the interpolation from the last two frames.
+
+        :param frames_state: The current frames state
+        :type frames_state: ShowFramesState
+        """
+        current_index = frames_state.current_index
+        if current_index < 2 or self._is_annotated(current_index):
+            return
+        if not self._is_annotated(current_index-1) or not self._is_annotated(current_index-2):
+            return
+        diff = self.annotations[current_index-1] - self.annotations[current_index-2]
+        frames_state.render_position = diff * self.resolution + frames_state.render_position
+
+    def _is_annotated(self, index):
+        """
+        Returns whether the given frame is annotated.
+
+        :param index: The index to check
+        :type index: int
+        :return: True, if the given frame is annotated otherwise False
+        :rtype: bool
+        """
+        return np.all(np.isfinite(self.annotations[index]))
+
     def __call__(self, frames_state, key):
         """
         Changes the frames_state, depending on key and fills out the given annotations.
@@ -135,6 +196,7 @@ class FillAnnotationsKeySupplier:
         if key == KeyCodes.SPACE:
             self._set_point(frames_state.current_index, frames_state.render_position)
             frames_state.inc_index()
+            self._interpolate_forward(frames_state)
         elif key == KeyCodes.ENTER:
             self._set_point(frames_state.current_index, frames_state.render_position)
         elif key == KeyCodes.ESCAPE:
@@ -149,6 +211,13 @@ class FillAnnotationsKeySupplier:
                 frames_state.current_index = missing_index
             else:
                 print('everything is annotated')
+        elif key == KeyCodes.C:
+            self._center(frames_state)
+        elif key == KeyCodes.T:
+            if not self._is_annotated(frames_state.current_index):
+                self._set_point(frames_state.current_index, frames_state.render_position)
+            self._interpolate(frames_state.current_index)
+            frames_state.inc_index()
         else:
             return default_key_callback(frames_state, key)
         return True
