@@ -1,46 +1,77 @@
+import itertools
+from typing import Iterable
+
+import numpy as np
 import tensorflow as tf
 
-from data.data import AnnotatedDataset, DatasetPlaceholder
+from data.data import AnnotatedDataset, DatasetPlaceholder, DataInfo
 from model.conv_model import create_compiled_conv_model
 from util.show_frames import show_frames, ZoomAnnotationsRenderer
 
 
-def _get_tf_dataset(database_dir):
-    dataset_placeholders = DatasetPlaceholder.list_database(database_dir, DatasetPlaceholder.is_full_dataset)
+BATCH_SIZE = 32
+
+
+def _get_tf_dataset(dataset_placeholders):
+    """
+    Returns a tf Dataset that can be used for training.
+
+    :param dataset_placeholders: The placeholders to use for this dataset
+    :type dataset_placeholders: Iterable[DatasetPlaceholder]
+    :return: A tensorflow Dataset
+    :rtype: tf.data.Dataset
+    """
+    joined_data_info = _join_dataset_placeholder_infos(dataset_placeholders)
 
     def _dataset_gen():
-        for dataset_placeholder in dataset_placeholders:
-            d_set = AnnotatedDataset.from_placeholder(dataset_placeholder)
-            for video_data, annotation_data in zip(d_set.video_data, d_set.annotation_data):
-                yield video_data, annotation_data
+        def _sample_iter():
+            for dataset_placeholder in dataset_placeholders:
+                annotated_dataset = AnnotatedDataset.from_placeholder(dataset_placeholder)
+                for video_data, annotation_data in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
+                    yield video_data, annotation_data
 
-    dataset = tf.data.Dataset.from_generator(
+        return _sample_iter()
+
+    return tf.data.Dataset.from_generator(
         _dataset_gen,
         (tf.float32, tf.float32),
-        (tf.TensorShape([480, 640, 3]), tf.TensorShape([2]))
-    )
+        (tf.TensorShape(joined_data_info.resolution), tf.TensorShape([2]))
+    ) \
+        .take((joined_data_info.num_samples // BATCH_SIZE) * BATCH_SIZE)\
+        .batch(BATCH_SIZE, drop_remainder=True)\
+        .repeat()\
+        .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-    dataset = dataset.batch(30, drop_remainder=True)
-    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
-    return dataset
+def second(i):
+    for n, x in enumerate(i):
+        if n % 2 > 0:
+            yield x
 
 
 def train_conv_model(args):
-    train_dataset = _get_tf_dataset(args.train_data)
-
-    resolution = (480, 640, 3)
+    dataset_placeholders = DatasetPlaceholder.list_database(args.train_data, DatasetPlaceholder.is_full_dataset)
+    joined_train_data_info = _join_dataset_placeholder_infos(dataset_placeholders)
+    train_dataset = _get_tf_dataset(dataset_placeholders)
 
     eval_dataset = None
+    joined_eval_data_info = None
     if args.eval_data is not None:
-        eval_dataset = _get_tf_dataset(args.eval_data)
+        eval_dataset_placeholders = DatasetPlaceholder.list_database(args.eval_data, DatasetPlaceholder.is_full_dataset)
+        joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
+        eval_dataset = _get_tf_dataset(eval_dataset_placeholders)
 
-    model = create_compiled_conv_model(resolution)
+    model = create_compiled_conv_model(joined_train_data_info.resolution)
+
+    print('num eval samples: {}'.format(joined_eval_data_info.num_samples))
+    print('num eval samples//BATCH_SIZE: {}'.format(joined_eval_data_info.num_samples // BATCH_SIZE))
 
     model.summary()
     model.fit(
         train_dataset,
+        steps_per_epoch=joined_train_data_info.num_samples // BATCH_SIZE,
         validation_data=eval_dataset,
+        validation_steps=joined_eval_data_info.num_samples // BATCH_SIZE if joined_eval_data_info else None,
         epochs=10,
         verbose=True
     )
@@ -59,3 +90,15 @@ def train_conv_model(args):
                 show_dataset.get_resolution()
             )
         )
+
+
+def _join_dataset_placeholder_infos(dataset_placeholders):
+    """
+    Returns the joined DataInfo of the given placeholders.
+
+    :param dataset_placeholders: Iterable of DatasetPlaceholders to join
+    :type dataset_placeholders: Iterable[DatasetPlaceholder]
+    :return: The joined DataInfo of the given placeholders
+    :rtype: DataInfo
+    """
+    return DataInfo.join(map(lambda dataset_placeholder: dataset_placeholder.data_info, dataset_placeholders))
