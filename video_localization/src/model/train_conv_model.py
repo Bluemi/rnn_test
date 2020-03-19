@@ -63,9 +63,6 @@ def train_conv_model(args):
 
     model = create_compiled_conv_model(joined_train_data_info.resolution)
 
-    print('num eval samples: {}'.format(joined_eval_data_info.num_samples))
-    print('num eval samples//BATCH_SIZE: {}'.format(joined_eval_data_info.num_samples // BATCH_SIZE))
-
     model.summary()
     model.fit(
         train_dataset,
