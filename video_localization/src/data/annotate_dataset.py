@@ -1,6 +1,6 @@
 import numpy as np
 
-from data.data import DatasetPlaceholder, chose_dataset_placeholder, VideoDataset, Dataset
+from data.data import DatasetPlaceholder, chose_dataset_placeholder, VideoDataset, AnnotatedDataset
 from util.show_frames import show_frames, ZoomAnnotationsRenderer, FillAnnotationsKeySupplier
 
 
@@ -26,7 +26,7 @@ def annotate_frames(dataset):
     Returns the full dataset.
 
     :param dataset: The dataset to annotate
-    :type dataset: VideoDataset or Dataset
+    :type dataset: VideoDataset or AnnotatedDataset
     :return: The annotations made
     :rtype: np.ndarray
     """

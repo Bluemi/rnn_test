@@ -1,6 +1,6 @@
 import numpy as np
 
-from data.data import Dataset, VideoDataset
+from data.data import AnnotatedDataset, VideoDataset
 from util.images import draw_cross, get_zoomed_image, translate_position
 from util.images.draw_functions import create_draw_addition, draw_addition
 from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWindow
@@ -346,7 +346,7 @@ def show_frames(
 
     :param data_source: The source of the frames to show. Can be a numpy.ndarray, list[numpy.ndarray], Dataset or
                         VideoDataset
-    :type data_source: list[np.ndarray] or np.ndarray or Dataset or VideoDataset
+    :type data_source: list[np.ndarray] or np.ndarray or AnnotatedDataset or VideoDataset
     :param window_title: The title of the window
     :type window_title: str
     :param key_callback: Callback for every keystroke. Should take the current frame_state object, as well as the
@@ -368,7 +368,7 @@ def show_frames(
             if not isinstance(data_source_element, np.ndarray):
                 raise TypeError('Cant show frames for list of type "{}"'.format(type(data_source_element).__name__))
         frames = data_source
-    elif isinstance(data_source, Dataset):
+    elif isinstance(data_source, AnnotatedDataset):
         frames = data_source.video_data
         if render_callback is None:
             render_callback = RenderAnnotationsSupplier(data_source.annotation_data)

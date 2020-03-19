@@ -1,5 +1,7 @@
+import json
 import os
 from enum import Enum
+from typing import Iterable
 
 import numpy as np
 
@@ -7,21 +9,25 @@ from util.util import always_true
 
 VIDEO_DATASET_FILENAME = 'video_data.npy'
 ANNOTATION_DATASET_FILENAME = 'annotations.npy'
+INFO_FILENAME = 'info.json'
 MAX_PIXEL_VALUE = 255
 
 
 class VideoDataset:
-    def __init__(self, name,  video_data):
+    def __init__(self, name, data_info, video_data):
         """
         Creates a new VideoDataset.
         A VideoDataset only contains the video information, but no hand position information.
 
         :param name: The name of the dataset
         :type name: str
+        :param data_info: The info about this dataset
+        :type data_info: DataInfo
         :param video_data: The video data
         :type video_data: np.ndarray
         """
         self.name = name
+        self.data_info = data_info
         self.video_data = video_data
 
     def get_num_samples(self):
@@ -43,9 +49,9 @@ class VideoDataset:
         :return: A new VideoDataset
         :rtype: VideoDataset
         """
-        video_data = np.load(placeholder.get_video_path()).astype(np.float) / MAX_PIXEL_VALUE
+        video_data = np.load(placeholder.get_video_path()).astype(np.float32) / MAX_PIXEL_VALUE
 
-        return VideoDataset(placeholder.get_basename(), video_data)
+        return VideoDataset(placeholder.get_basename(), data_info=placeholder.data_info, video_data=video_data)
 
     def is_full_dataset(self):
         return False
@@ -54,22 +60,28 @@ class VideoDataset:
         return True
 
 
-class Dataset(VideoDataset):
-    def __init__(self, name, video_data, annotation_data):
+class AnnotatedDataset(VideoDataset):
+    def __init__(self, name, data_info, video_data, annotation_data):
         """
         Contains the video data as well as the hand position data
 
         :param name: The name of the dataset
         :type name: str
+        :param data_info: The data info about this dataset
+        :type data_info: DataInfo
         :param video_data: The video data
         :type video_data: np.ndarray
         :param annotation_data:
         :type annotation_data: np.ndarray
         """
-        super().__init__(name, video_data)
+        super().__init__(name, data_info, video_data)
         self.annotation_data = annotation_data
 
-        assert (video_data.shape[0] == annotation_data.shape[0])
+        if not video_data.shape[0] == annotation_data.shape[0] == data_info.num_samples:
+            raise DataError(
+                'num samples not matching: video data={} annotation_data={} data_info={}'
+                .format(video_data.shape[0], annotation_data.shape[0], data_info.num_samples)
+            )
 
     def __str__(self):
         return self.name
@@ -88,16 +100,16 @@ class Dataset(VideoDataset):
         :param placeholder: The DatasetPlaceholder to load
         :type placeholder: DatasetPlaceholder
         :return: A new Dataset
-        :rtype: Dataset
+        :rtype: AnnotatedDataset
         """
-        if placeholder.dataset_type != DatasetPlaceholder.DatasetType.FULL_DATASET:
-            raise DataError('Cant load full Dataset from video dataset')
+        if placeholder.dataset_type != DatasetPlaceholder.DatasetType.ANNOTATED_DATASET:
+            raise DataError('Cant load annotated Dataset from video dataset placeholder')
 
         # datasets are saved as int array with values between 0 and 255. Convert it to float.
         video_data = np.load(placeholder.get_video_path()).astype(np.float32) / MAX_PIXEL_VALUE
         annotations_data = np.load(placeholder.get_annotations_path())
 
-        return Dataset(placeholder.get_basename(), video_data, annotations_data)
+        return AnnotatedDataset(placeholder.get_basename(), placeholder.data_info, video_data, annotations_data)
 
     @staticmethod
     def concatenate(datasets):
@@ -105,9 +117,9 @@ class Dataset(VideoDataset):
         Returns the given datasets concatenated into one np array.
 
         :param datasets: The datasets to concatenate
-        :type datasets: list[Dataset]
+        :type datasets: list[AnnotatedDataset]
         :return: A new Dataset that contains all given datasets
-        :rtype: Dataset
+        :rtype: AnnotatedDataset
         """
         video_data = list(map(lambda dataset: dataset.video_data, datasets))
         annotations = list(map(lambda dataset: dataset.annotation_data, datasets))
@@ -115,7 +127,9 @@ class Dataset(VideoDataset):
         concatenated_video_data = np.concatenate(video_data)
         concatenated_annotation_data = np.concatenate(annotations)
 
-        return Dataset('train_dataset', concatenated_video_data, concatenated_annotation_data)
+        joined_info = DataInfo.join(map(lambda dataset: dataset.data_info, datasets))
+
+        return AnnotatedDataset('train_dataset', joined_info, concatenated_video_data, concatenated_annotation_data)
 
     def is_full_dataset(self):
         return True
@@ -131,30 +145,99 @@ class Dataset(VideoDataset):
         :param database_directory: The database directory to load
         :type database_directory: str
         :return: A new Dataset loaded from the given directory
-        :rtype: Dataset
+        :rtype: AnnotatedDataset
         """
         dataset_placeholders = DatasetPlaceholder.list_database(
             database_directory, dataset_filter=DatasetPlaceholder.is_full_dataset
         )
-        datasets = list(map(Dataset.from_placeholder, dataset_placeholders))
-        return Dataset.concatenate(datasets)
+        datasets = list(map(AnnotatedDataset.from_placeholder, dataset_placeholders))
+        return AnnotatedDataset.concatenate(datasets)
+
+
+class DataInfo:
+    def __init__(self, resolution, num_samples, subjects, tags):
+        """
+        Creates a DataInfo object.
+
+        :param resolution: The resolution of the Dataset. Given as tuple (height, width, depth). The parameter depth can
+                           be omitted.
+        :type resolution: tuple[int, int, int] or tuple[int, int]
+        :param num_samples: The number of samples in this dataset
+        :type num_samples: int
+        :param subjects: A list of the subjects seen in this dataset
+        :type subjects: list[str]
+        :param tags: List of tags for this dataset
+        :type tags: list[str]
+        """
+        self.resolution = resolution
+        self.num_samples = num_samples
+        self.subjects = subjects
+        self.tags = tags
+
+    @staticmethod
+    def from_info_file(filepath):
+        """
+        Reads the dataset info from the given path.
+
+        :param filepath: The info file to read
+        :type filepath: str
+        :return: An DataInfo object containing the information of the file
+        :rtype: DataInfo
+        """
+        with open(filepath, 'r') as f:
+            info = json.load(f)
+            return DataInfo(info['resolution'], info['num_samples'], info['subjects'], info['tags'])
+
+    @staticmethod
+    def join(data_infos):
+        """
+        Joins the given data info objects.
+
+        :param data_infos: A list of DataInfo objects to join
+        :type data_infos: Iterable[DataInfo]
+        :return: The joined DataInfo
+        :rtype: DataInfo
+        """
+        resolution = None
+        num_samples = 0
+        subjects = set()
+        tags = set()
+        for data_info in data_infos:
+            if resolution is None:
+                resolution = data_info.resolution
+            else:
+                assert resolution == data_info.resolution, 'Cannot join data infos with different resolutions'
+
+            num_samples += data_info.num_samples
+
+            for subject in data_info.subjects:
+                subjects.add(subject)
+
+            for tag in data_info.tags:
+                tags.add(tag)
+
+        return DataInfo(resolution, num_samples, list(subjects), list(tags))
 
 
 class DatasetPlaceholder:
     class DatasetType(Enum):
         VIDEO_DATASET = 0
-        FULL_DATASET = 1
+        ANNOTATED_DATASET = 1
 
-    def __init__(self, path, dataset_type):
+    def __init__(self, path, dataset_type, data_info):
         """
         Creates a new DatasetPlaceholder.
 
         :param path: The path of the dataset
         :type path: str
-        :param dataset_type:
+        :param dataset_type: The type of the dataset. Either VIDEO_DATASET or ANNOTATED_DATASET
+        :type dataset_type: DatasetPlaceholder.DatasetType
+        :param data_info: The info object for this dataset
+        :type data_info: DataInfo
         """
         self.path = path
         self.dataset_type = dataset_type
+        self.data_info = data_info
 
     def get_basename(self):
         """
@@ -183,9 +266,19 @@ class DatasetPlaceholder:
         """
         return os.path.join(self.path, ANNOTATION_DATASET_FILENAME)
 
+    def get_info_path(self):
+        """
+        Returns the path to the info data.
+
+        :return: the path to the info data
+        :rtype: str
+        """
+        return os.path.join(self.path, INFO_FILENAME)
+
     def is_video_dataset(self):
         """
         Returns whether it is a video dataset or not.
+
         :return: True, if it is a video dataset, otherwise False
         :rtype: bool
         """
@@ -197,17 +290,17 @@ class DatasetPlaceholder:
         :return: True, if it is a full dataset, otherwise False
         :rtype: bool
         """
-        return self.dataset_type == DatasetPlaceholder.DatasetType.FULL_DATASET
+        return self.dataset_type == DatasetPlaceholder.DatasetType.ANNOTATED_DATASET
 
     def load(self):
         """
         Returns a Dataset of VideoDataset depending on dataset_type
 
         :return: a Dataset of VideoDataset depending on dataset_type
-        :rtype: Dataset or VideoDataset
+        :rtype: AnnotatedDataset or VideoDataset
         """
-        if self.dataset_type == DatasetPlaceholder.DatasetType.FULL_DATASET:
-            return Dataset.from_placeholder(self)
+        if self.dataset_type == DatasetPlaceholder.DatasetType.ANNOTATED_DATASET:
+            return AnnotatedDataset.from_placeholder(self)
         elif self.dataset_type == DatasetPlaceholder.DatasetType.VIDEO_DATASET:
             return VideoDataset.from_placeholder(self)
 
@@ -231,17 +324,25 @@ class DatasetPlaceholder:
 
         :raise DataError: If no video datafile could be found
         """
+        # annotations
         annotations_filename = os.path.join(path, ANNOTATION_DATASET_FILENAME)
         if os.path.isfile(annotations_filename):
-            dataset_type = DatasetPlaceholder.DatasetType.FULL_DATASET
+            dataset_type = DatasetPlaceholder.DatasetType.ANNOTATED_DATASET
         else:
             dataset_type = DatasetPlaceholder.DatasetType.VIDEO_DATASET
 
+        # video
         video_data_filename = os.path.join(path, VIDEO_DATASET_FILENAME)
         if not os.path.isfile(video_data_filename):
             raise DataError('Could not find video data file: {}'.format(video_data_filename))
 
-        return DatasetPlaceholder(path, dataset_type)
+        # info
+        info_data_filename = os.path.join(path, INFO_FILENAME)
+        if not os.path.isfile(info_data_filename):
+            raise DataError('Could not find info data file: {}'.format(info_data_filename))
+        data_info = DataInfo.from_info_file(info_data_filename)
+
+        return DatasetPlaceholder(path, dataset_type, data_info)
 
     @staticmethod
     def list_database(database_path, dataset_filter=None):

@@ -1,10 +1,11 @@
+import json
 import os
 import time
 
 import numpy as np
 
 from util.camera import Camera
-from data.data import VIDEO_DATASET_FILENAME
+from data.data import VIDEO_DATASET_FILENAME, INFO_FILENAME
 from util.show_frames import default_key_callback, show_frames
 from util.util import RenderWindow, KeyCodes
 
@@ -46,10 +47,25 @@ def create_video_dataset(args):
 
     result = np.array(chosen_frames)
 
-    file_path = os.path.join(dataset_directory, VIDEO_DATASET_FILENAME)
-    with open(file_path, 'wb') as f:
+    video_file_path = os.path.join(dataset_directory, VIDEO_DATASET_FILENAME)
+    with open(video_file_path, 'wb') as f:
         # noinspection PyTypeChecker
         np.save(f, result)
+
+    subject = None
+    while not subject:
+        subject = input('subject: ')
+
+    info_obj = {
+        'resolution': result.shape[1:],
+        'num_samples': result.shape[0],
+        'subjects': [subject],
+        'tags': []
+    }
+
+    info_file_path = os.path.join(dataset_directory, INFO_FILENAME)
+    with open(info_file_path, 'w') as f:
+        json.dump(info_obj, f)
 
 
 class EditKeySupplier:
