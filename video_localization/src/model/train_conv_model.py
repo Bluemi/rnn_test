@@ -43,26 +43,25 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE):
 
 
 def train_conv_model(args):
-    tf.summary.trace_off()
     dataset_placeholders = DatasetPlaceholder.list_database(args.train_data, DatasetPlaceholder.is_full_dataset)
-    joined_train_data_info = _join_dataset_placeholder_infos(dataset_placeholders)
-    train_dataset = _get_tf_dataset(dataset_placeholders)
 
-    eval_dataset = None
-    joined_eval_data_info = None
-    if args.eval_data is not None:
-        eval_dataset_placeholders = DatasetPlaceholder.list_database(args.eval_data, DatasetPlaceholder.is_full_dataset)
-        eval_dataset = AnnotatedDataset.concatenate(map(AnnotatedDataset.from_placeholder, eval_dataset_placeholders))
-        joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
+    train_dataset_placeholders = []
+    eval_dataset_placeholders = []
+
+    for dataset_placeholder in dataset_placeholders:
+        if 'rudi' in dataset_placeholder.data_info.subjects:
+            eval_dataset_placeholders.append(dataset_placeholder)
+        else:
+            train_dataset_placeholders.append(dataset_placeholder)
+
+    joined_train_data_info = _join_dataset_placeholder_infos(train_dataset_placeholders)
+    train_dataset = _get_tf_dataset(train_dataset_placeholders)
+
+    eval_dataset = AnnotatedDataset.concatenate(map(AnnotatedDataset.from_placeholder, eval_dataset_placeholders))
+    joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
 
     model = create_compiled_conv_model(joined_train_data_info.resolution)
-
     model.summary()
-
-    print('eval_dataset num bytes: {}'.format(eval_dataset.get_num_bytes()))
-    print('eval_dataset num samples: {}'.format(eval_dataset.get_num_samples()))
-    print('num_eval_samples: {}'.format(joined_eval_data_info.num_samples))
-
     model.fit(
         train_dataset,
         steps_per_epoch=joined_train_data_info.num_samples // BATCH_SIZE,
