@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 from enum import Enum
@@ -87,21 +88,24 @@ class AnnotatedDataset(VideoDataset):
         return self.name
 
     def __repr__(self):
-        return 'Dataset<{}>'.format(self.name)
+        return 'Dataset<{}; {} samples>'.format(self.name, self.data_info.num_samples)
 
     def get_num_bytes(self):
         return self.video_data.nbytes + self.annotation_data.nbytes
 
     @staticmethod
-    def from_placeholder(placeholder):
+    def from_placeholder(placeholder, divisible_by=None):
         """
         Loads a new Dataset from the given placeholder.
 
         :param placeholder: The DatasetPlaceholder to load
         :type placeholder: DatasetPlaceholder
+        :param divisible_by: If set, the dataset will contain a number of samples that is divisible by the given number
+        :type divisible_by: int
         :return: A new Dataset
         :rtype: AnnotatedDataset
         """
+        data_info = copy.deepcopy(placeholder.data_info)
         if placeholder.dataset_type != DatasetPlaceholder.DatasetType.ANNOTATED_DATASET:
             raise DataError('Cant load annotated Dataset from video dataset placeholder')
 
@@ -109,7 +113,13 @@ class AnnotatedDataset(VideoDataset):
         video_data = np.load(placeholder.get_video_path()).astype(np.float32) / MAX_PIXEL_VALUE
         annotations_data = np.load(placeholder.get_annotations_path())
 
-        return AnnotatedDataset(placeholder.get_basename(), placeholder.data_info, video_data, annotations_data)
+        if divisible_by is not None:
+            num_samples = (data_info.num_samples // divisible_by) * divisible_by
+            data_info.num_samples = num_samples
+            video_data = video_data[:num_samples]
+            annotations_data = annotations_data[:num_samples]
+
+        return AnnotatedDataset(placeholder.get_basename(), data_info, video_data, annotations_data)
 
     @staticmethod
     def concatenate(datasets):
@@ -117,10 +127,11 @@ class AnnotatedDataset(VideoDataset):
         Returns the given datasets concatenated into one np array.
 
         :param datasets: The datasets to concatenate
-        :type datasets: list[AnnotatedDataset]
+        :type datasets: Iterable[AnnotatedDataset]
         :return: A new Dataset that contains all given datasets
         :rtype: AnnotatedDataset
         """
+        datasets = list(datasets)
         video_data = list(map(lambda dataset: dataset.video_data, datasets))
         annotations = list(map(lambda dataset: dataset.annotation_data, datasets))
 
@@ -307,7 +318,9 @@ class DatasetPlaceholder:
         raise DataError('Unknown dataset type: {}'.format(self.dataset_type))
 
     def __str__(self):
-        return '{} ({}; {} samples)'.format(self.get_basename(), self.dataset_type.name.lower(), self.data_info.num_samples)
+        return '{} ({}; {} samples)'.format(
+            self.get_basename(), self.dataset_type.name.lower(), self.data_info.num_samples
+        )
 
     def __repr__(self):
         return self.get_basename()

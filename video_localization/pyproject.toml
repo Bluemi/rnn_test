@@ -7,9 +7,10 @@ authors = ["Bluemi <bruno.schilling@protonmail.ch>"]
 [tool.poetry.dependencies]
 python = "^3.6"
 matplotlib = "^3.2.0"
-tensorflow = "^2.1.0"
-numpy = "^1.18.1"
+numpy = "^1.18"
 opencv-python = "^4.2.0"
+tensorflow = "^2.1.0"
+tensorflow-estimator = "^2.1.0"
 
 [tool.poetry.dev-dependencies]
 

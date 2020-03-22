@@ -1,7 +1,5 @@
-import itertools
 from typing import Iterable
 
-import numpy as np
 import tensorflow as tf
 
 from data.data import AnnotatedDataset, DatasetPlaceholder, DataInfo
@@ -10,9 +8,10 @@ from util.show_frames import show_frames, ZoomAnnotationsRenderer
 
 
 BATCH_SIZE = 32
+NUM_EPOCHS = 100
 
 
-def _get_tf_dataset(dataset_placeholders):
+def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE):
     """
     Returns a tf Dataset that can be used for training.
 
@@ -26,7 +25,7 @@ def _get_tf_dataset(dataset_placeholders):
     def _dataset_gen():
         def _sample_iter():
             for dataset_placeholder in dataset_placeholders:
-                annotated_dataset = AnnotatedDataset.from_placeholder(dataset_placeholder)
+                annotated_dataset = AnnotatedDataset.from_placeholder(dataset_placeholder, divisible_by=batch_size)
                 for video_data, annotation_data in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
                     yield video_data, annotation_data
 
@@ -37,19 +36,14 @@ def _get_tf_dataset(dataset_placeholders):
         (tf.float32, tf.float32),
         (tf.TensorShape(joined_data_info.resolution), tf.TensorShape([2]))
     ) \
-        .take((joined_data_info.num_samples // BATCH_SIZE) * BATCH_SIZE)\
-        .batch(BATCH_SIZE, drop_remainder=True)\
+        .take((joined_data_info.num_samples // batch_size) * batch_size)\
+        .batch(batch_size, drop_remainder=True)\
         .repeat()\
         .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
 
-def second(i):
-    for n, x in enumerate(i):
-        if n % 2 > 0:
-            yield x
-
-
 def train_conv_model(args):
+    tf.summary.trace_off()
     dataset_placeholders = DatasetPlaceholder.list_database(args.train_data, DatasetPlaceholder.is_full_dataset)
     joined_train_data_info = _join_dataset_placeholder_infos(dataset_placeholders)
     train_dataset = _get_tf_dataset(dataset_placeholders)
@@ -58,19 +52,24 @@ def train_conv_model(args):
     joined_eval_data_info = None
     if args.eval_data is not None:
         eval_dataset_placeholders = DatasetPlaceholder.list_database(args.eval_data, DatasetPlaceholder.is_full_dataset)
+        eval_dataset = AnnotatedDataset.concatenate(map(AnnotatedDataset.from_placeholder, eval_dataset_placeholders))
         joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
-        eval_dataset = _get_tf_dataset(eval_dataset_placeholders)
 
     model = create_compiled_conv_model(joined_train_data_info.resolution)
 
     model.summary()
+
+    print('eval_dataset num bytes: {}'.format(eval_dataset.get_num_bytes()))
+    print('eval_dataset num samples: {}'.format(eval_dataset.get_num_samples()))
+    print('num_eval_samples: {}'.format(joined_eval_data_info.num_samples))
+
     model.fit(
         train_dataset,
         steps_per_epoch=joined_train_data_info.num_samples // BATCH_SIZE,
-        validation_data=eval_dataset,
-        validation_steps=joined_eval_data_info.num_samples // BATCH_SIZE if joined_eval_data_info else None,
-        epochs=10,
-        verbose=True
+        validation_data=(eval_dataset.video_data, eval_dataset.annotation_data),
+        validation_steps=joined_eval_data_info.num_samples if joined_eval_data_info else None,
+        epochs=NUM_EPOCHS,
+        verbose=True,
     )
 
     if args.show:
