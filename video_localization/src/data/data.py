@@ -318,8 +318,12 @@ class DatasetPlaceholder:
         raise DataError('Unknown dataset type: {}'.format(self.dataset_type))
 
     def __str__(self):
-        return '{} ({}; {} samples)'.format(
-            self.get_basename(), self.dataset_type.name.lower(), self.data_info.num_samples
+        return '{} ({}; {} samples, subjects: [{}], tags: [{}])'.format(
+            self.get_basename(),
+            self.dataset_type.name.lower(),
+            self.data_info.num_samples,
+            ','.join(self.data_info.subjects),
+            ','.join(self.data_info.tags)
         )
 
     def __repr__(self):

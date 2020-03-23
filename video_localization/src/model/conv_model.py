@@ -19,8 +19,10 @@ def create_uncompiled_conv_model(input_shape):
     model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(layers.Conv2D(filters=64, kernel_size=(3, 3), strides=2, activation='relu'))
     model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+    model.add(layers.Conv2D(filters=64, kernel_size=(3, 3), strides=2, activation='relu'))
+    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(layers.Flatten())
-    model.add(layers.Dense(128, activation='relu'))
+    model.add(layers.Dense(32, activation='relu'))
     model.add(layers.Dense(2, activation='linear'))
 
     return model

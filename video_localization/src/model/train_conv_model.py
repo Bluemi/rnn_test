@@ -8,7 +8,7 @@ from util.show_frames import show_frames, ZoomAnnotationsRenderer
 
 
 BATCH_SIZE = 32
-NUM_EPOCHS = 100
+NUM_EPOCHS = 20
 
 
 def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE):
@@ -49,7 +49,7 @@ def train_conv_model(args):
     eval_dataset_placeholders = []
 
     for dataset_placeholder in dataset_placeholders:
-        if 'rudi' in dataset_placeholder.data_info.subjects:
+        if 'eval' in dataset_placeholder.data_info.tags:
             eval_dataset_placeholders.append(dataset_placeholder)
         else:
             train_dataset_placeholders.append(dataset_placeholder)
@@ -59,6 +59,9 @@ def train_conv_model(args):
 
     eval_dataset = AnnotatedDataset.concatenate(map(AnnotatedDataset.from_placeholder, eval_dataset_placeholders))
     joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
+
+    print('num train samples: {}'.format(joined_train_data_info.num_samples))
+    print('num eval samples: {}'.format(joined_eval_data_info.num_samples))
 
     model = create_compiled_conv_model(joined_train_data_info.resolution)
     model.summary()
@@ -72,17 +75,13 @@ def train_conv_model(args):
     )
 
     if args.show:
-        show_data_dir = args.eval_data or args.train_data
-
-        show_dataset = AnnotatedDataset.load_database(show_data_dir)
-
-        annotations = model.predict(x=show_dataset.video_data)
+        annotations = model.predict(x=eval_dataset.video_data)
 
         show_frames(
-            show_dataset,
+            eval_dataset,
             render_callback=ZoomAnnotationsRenderer(
-                [show_dataset.annotation_data, annotations],
-                show_dataset.get_resolution()
+                [eval_dataset.annotation_data, annotations],
+                eval_dataset.get_resolution()
             )
         )
 
