@@ -1,6 +1,7 @@
 import argparse
 
 from data import annotate_dataset, create_video_dataset, show_dataset
+from data.import_video import import_video
 from util import test_camera
 
 
@@ -56,6 +57,21 @@ def parse_args():
         help='If set the predictions of the model are shown using the evaluation data, if present'
     )
     train_conv_model_parser.set_defaults(func=do_train_conv_model)
+
+    # import video
+    import_video_parser = sub_parsers.add_parser(
+        'import-video', description='Imports a video file. The result is a VideoDataset'
+    )
+    import_video_parser.add_argument(
+        'database_directory', metavar='database-directory', type=str, help='The location of the database'
+    )
+    import_video_parser.add_argument(
+        'video_file', metavar='video-file', type=str, help='The video file to convert'
+    )
+    import_video_parser.add_argument(
+        '--flip', action='store_true', help='If set the video is flipped horizontally'
+    )
+    import_video_parser.set_defaults(func=import_video)
 
     return parser.parse_args()
 

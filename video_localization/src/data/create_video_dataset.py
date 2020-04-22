@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from util.camera import Camera
-from data.data import VIDEO_DATASET_FILENAME, INFO_FILENAME
+from data.data import VIDEO_DATASET_FILENAME, INFO_FILENAME, DataError
 from util.show_frames import default_key_callback, show_frames
 from util.util import RenderWindow, KeyCodes
 
@@ -22,10 +22,6 @@ def create_video_dataset(args):
 
     :raise OSError: If the dataset directory already exists
     """
-    dataset_directory = os.path.join(args.database_directory, 'dataset_{}'.format(time.strftime(DATASET_TIME_FORMAT)))
-
-    os.makedirs(dataset_directory)
-
     camera = Camera.create()
     render_window = RenderWindow('current')
 
@@ -45,20 +41,34 @@ def create_video_dataset(args):
 
     chosen_frames = choose_frames(frames)
 
-    result = np.array(chosen_frames)
+    dump_video_dataset(np.array(chosen_frames), create_dataset_directory(args.database_directory))
+
+
+def dump_video_dataset(frames, dataset_directory):
+    """
+    Writes the given video dataset to disk
+
+    :param frames: The frames to dump
+    :type frames: np.ndarray
+    :param dataset_directory: The directory of the dataset
+    :type dataset_directory: str
+    """
+    if os.path.isdir(dataset_directory):
+        raise DataError('Could not create video dataset. Dataset directory already exists')
+    os.makedirs(dataset_directory)
 
     video_file_path = os.path.join(dataset_directory, VIDEO_DATASET_FILENAME)
     with open(video_file_path, 'wb') as f:
         # noinspection PyTypeChecker
-        np.save(f, result)
+        np.save(f, frames)
 
     subject = None
     while not subject:
         subject = input('subject: ')
 
     info_obj = {
-        'resolution': result.shape[1:],
-        'num_samples': result.shape[0],
+        'resolution': frames.shape[1:],
+        'num_samples': frames.shape[0],
         'subjects': [subject],
         'tags': []
     }
@@ -66,6 +76,10 @@ def create_video_dataset(args):
     info_file_path = os.path.join(dataset_directory, INFO_FILENAME)
     with open(info_file_path, 'w') as f:
         json.dump(info_obj, f)
+
+
+def create_dataset_directory(database_directory):
+    return os.path.join(database_directory, 'dataset_{}'.format(time.strftime(DATASET_TIME_FORMAT)))
 
 
 class EditKeySupplier:
