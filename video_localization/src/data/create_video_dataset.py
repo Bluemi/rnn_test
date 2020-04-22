@@ -41,7 +41,7 @@ def create_video_dataset(args):
 
     chosen_frames = choose_frames(frames)
 
-    dump_video_dataset(np.array(chosen_frames), create_dataset_directory(args.database_directory))
+    dump_video_dataset(np.array(chosen_frames), get_dataset_directory(args.database_directory))
 
 
 def dump_video_dataset(frames, dataset_directory):
@@ -78,7 +78,7 @@ def dump_video_dataset(frames, dataset_directory):
         json.dump(info_obj, f)
 
 
-def create_dataset_directory(database_directory):
+def get_dataset_directory(database_directory):
     return os.path.join(database_directory, 'dataset_{}'.format(time.strftime(DATASET_TIME_FORMAT)))
 
 

@@ -2,7 +2,7 @@ import argparse
 import cv2
 import numpy as np
 
-from data.create_video_dataset import dump_video_dataset, create_dataset_directory, choose_frames
+from data.create_video_dataset import dump_video_dataset, get_dataset_directory, choose_frames
 from data.data import DataError
 
 IMPORT_RESOLUTION = (640, 480)
@@ -47,4 +47,4 @@ def import_video(args):
 
     chosen_frames = choose_frames(result_frames)
 
-    dump_video_dataset(np.array(chosen_frames), create_dataset_directory(args.database_directory))
+    dump_video_dataset(np.array(chosen_frames), get_dataset_directory(args.database_directory))
