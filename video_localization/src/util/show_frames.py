@@ -342,7 +342,11 @@ class ZoomRenderer:
         )
 
         if self.enable_cross:
-            draw_cross(output_image, (self.output_size[0] // 2, self.output_size[1] // 2), draw_function=draw_addition)
+            cross_position = (self.output_size[0] // 2, self.output_size[1] // 2)
+            if np.mean(output_image[cross_position]) > 0.5:
+                draw_cross(output_image, cross_position, draw_function=create_draw_addition(-0.4))
+            else:
+                draw_cross(output_image, cross_position, draw_function=create_draw_addition(0.4))
 
         return output_image
 
