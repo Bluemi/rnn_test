@@ -35,16 +35,18 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=n
             for video_data, annotation_data in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
                 yield preprocessing(video_data, annotation_data)
 
-    return tf.data.Dataset.from_generator(
+    dataset = tf.data.Dataset.from_generator(
         _dataset_gen,
         (tf.float32, tf.float32),
         (tf.TensorShape(RESOLUTION), tf.TensorShape([2]))
-    ) \
-        .take((joined_data_info.num_samples // batch_size) * batch_size)\
-        .shuffle(512*2)\
-        .batch(batch_size, drop_remainder=True)\
-        .repeat()\
-        .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    )
+    dataset = dataset.cache()
+    dataset = dataset.take((joined_data_info.num_samples // batch_size) * batch_size)
+    dataset = dataset.shuffle(joined_data_info.num_samples)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = dataset.repeat()
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    return dataset
 
 
 def train_conv_model(args):
@@ -67,8 +69,6 @@ def train_conv_model(args):
 
     print('num train samples: {}'.format(joined_train_data_info.num_samples))
     print('num eval samples: {}'.format(eval_dataset.get_num_samples()))
-
-    print('eval shape: {}'.format(eval_dataset.get_resolution()))
 
     model = create_compiled_conv_model(RESOLUTION)
     model.summary()
