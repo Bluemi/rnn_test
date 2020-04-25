@@ -1,4 +1,5 @@
 from typing import Iterable
+import random
 
 import tensorflow as tf
 
@@ -16,20 +17,17 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE):
     Returns a tf Dataset that can be used for training.
 
     :param dataset_placeholders: The placeholders to use for this dataset
-    :type dataset_placeholders: Iterable[DatasetPlaceholder]
+    :type dataset_placeholders: List[DatasetPlaceholder]
     :return: A tensorflow Dataset
     :rtype: tf.data.Dataset
     """
     joined_data_info = _join_dataset_placeholder_infos(dataset_placeholders)
 
     def _dataset_gen():
-        def _sample_iter():
-            for dataset_placeholder in dataset_placeholders:
-                annotated_dataset = AnnotatedDataset.from_placeholder(dataset_placeholder, divisible_by=batch_size)
-                for video_data, annotation_data in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
-                    yield video_data, annotation_data
-
-        return _sample_iter()
+        for dataset_placeholder in random.sample(dataset_placeholders, len(dataset_placeholders)):
+            annotated_dataset = AnnotatedDataset.from_placeholder(dataset_placeholder, divisible_by=batch_size)
+            for video_data, annotation_data in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
+                yield video_data, annotation_data
 
     return tf.data.Dataset.from_generator(
         _dataset_gen,
@@ -37,6 +35,7 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE):
         (tf.TensorShape(joined_data_info.resolution), tf.TensorShape([2]))
     ) \
         .take((joined_data_info.num_samples // batch_size) * batch_size)\
+        .shuffle(512*2)\
         .batch(batch_size, drop_remainder=True)\
         .repeat()\
         .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)

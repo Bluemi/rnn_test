@@ -2,13 +2,13 @@ import numpy as np
 
 from data.data import AnnotatedDataset, VideoDataset
 from util.images import draw_cross, get_zoomed_image, translate_position
-from util.images.draw_functions import create_draw_addition, draw_addition
+from util.images.draw_functions import create_draw_addition, draw_addition, dark_version
 from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWindow
 
 
 DEFAULT_ZOOM_RENDERER_OUTPUT_SIZE = (801, 801)
 DEFAULT_KEY_CALLBACK_MOVE_SPEED = 2
-DEFAULT_ANNOTATION_COLORS = [np.array([0.1, 0.4, 0.1]), np.array([0.1, 0.1, 0.4]), np.array([0.5, 0.1, 0.1])]
+DEFAULT_ANNOTATION_COLORS = [np.array([0.0, 0.7, 0.0]), np.array([0.0, 0.0, 0.7]), np.array([0.7, 0.0, 0.0])]
 
 
 class ShowFramesState:
@@ -195,6 +195,7 @@ class FillAnnotationsKeySupplier:
         """
         if key == KeyCodes.SPACE:
             self._set_point(frames_state.current_index, frames_state.render_position)
+            print('finished index {}'.format(frames_state.current_index))
             frames_state.inc_index()
             self._interpolate_forward(frames_state)
         elif key == KeyCodes.ENTER:
@@ -397,10 +398,16 @@ class ZoomAnnotationsRenderer(ZoomRenderer):
                     frames_state.render_position,
                     frames_state.zoom
                 )
+                draw_position = tuple(int(x) for x in draw_position)
+                if np.mean(output_image[draw_position]) < 0.5:
+                    used_color = annotation_color
+                else:
+                    used_color = dark_version(annotation_color)
+
                 draw_cross(
                     output_image,
-                    tuple(int(x) for x in draw_position),
-                    draw_function=create_draw_addition(annotation_color)
+                    draw_position,
+                    draw_function=create_draw_addition(used_color)
                 )
 
         return output_image
