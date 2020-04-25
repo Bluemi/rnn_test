@@ -4,6 +4,7 @@ import os
 from enum import Enum
 from typing import Iterable
 
+import cv2
 import numpy as np
 
 from util.util import always_true
@@ -59,6 +60,28 @@ class VideoDataset:
 
     def is_video_dataset(self):
         return True
+
+    def scale(self, resolution):
+        """
+        Returns a new VideoDataset with the given resolution
+
+        :param resolution: The new resolution of the video data given as tuple(height, width)
+        :type resolution: tuple[int, int]
+        :return: A new VideoDataset with the given video resolution
+        :rtype: VideoDataset
+        """
+        scaled_shape = (self.get_num_samples(), resolution[0], resolution[1], 3)
+        scaled_video_data = np.empty(scaled_shape, dtype=np.float32)
+        for index, image in enumerate(self.video_data):
+            scaled_video_data[index] = cv2.resize(image, (resolution[1], resolution[0]))
+
+        scaled_data_info = DataInfo(
+            scaled_shape[1:],
+            scaled_shape[0],
+            self.data_info.subjects,
+            self.data_info.tags
+        )
+        return VideoDataset(self.name, scaled_data_info, scaled_video_data)
 
 
 class AnnotatedDataset(VideoDataset):
@@ -163,6 +186,18 @@ class AnnotatedDataset(VideoDataset):
         )
         datasets = list(map(AnnotatedDataset.from_placeholder, dataset_placeholders))
         return AnnotatedDataset.concatenate(datasets)
+
+    def scale(self, resolution):
+        """
+        Returns a new AnnotatedDataset with the given resolution
+
+        :param resolution: The new resolution of the video data given as tuple(height, width)
+        :type resolution: tuple[int, int]
+        :return: A new AnnotatedDataset with the given video resolution
+        :rtype: AnnotatedDataset
+        """
+        video_dataset = super().scale(resolution)
+        return AnnotatedDataset(self.name, video_dataset.data_info, video_dataset.video_data, self.annotation_data)
 
 
 class DataInfo:
