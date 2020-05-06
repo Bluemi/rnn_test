@@ -11,7 +11,7 @@ elif [ "$1" == "create" ]; then
 elif [ "$1" == "anno" ]; then
 	python3 ./src/main.py annotate-dataset $database
 elif [ "$1" == "train" ]; then
-	python3 ./src/main.py train-conv-model $database --show
+	TF_CPP_MIN_LOG_LEVEL=3 python3 ./src/main.py train-conv-model $database --show
 elif [ "$1" == "import" ]; then
 	python3 ./src/main.py import-video $database "$2"
 fi
