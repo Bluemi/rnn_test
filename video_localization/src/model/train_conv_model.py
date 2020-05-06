@@ -14,7 +14,7 @@ from util.util import RenderWindow, KeyCodes
 BATCH_SIZE = 32
 NUM_EPOCHS = 20
 
-IMAGE_SIZE = (256, 256)
+IMAGE_SIZE = (128, 128)
 RESOLUTION = (*IMAGE_SIZE, 3)
 
 
