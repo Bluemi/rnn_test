@@ -1,9 +1,4 @@
-import cv2
 import tensorflow as tf
-
-
-def no_preprocessing(image, annotation):
-    return image, annotation
 
 
 def chain(steps):
@@ -33,7 +28,7 @@ def scale_to(size):
     :rtype: Callable[[numpy.ndarray, numpy.ndarray], tuple[numpy.ndarray, numpy.ndarray]]
     """
     def _scale(image_data, annotation_data):
-        return cv2.resize(image_data, (size[1], size[0])), annotation_data
+        return tf.image.resize(image_data, size), annotation_data
 
     return _scale
 

@@ -4,10 +4,11 @@ import random
 import tensorflow as tf
 
 from data.data import AnnotatedDataset, DatasetPlaceholder, DataInfo
-from data.preprocessing import scale_to, no_preprocessing, random_brightness, chain
+from data.preprocessing import scale_to, random_brightness, chain
 from model.conv_model import create_compiled_conv_model
-from util.show_frames import show_frames, ZoomAnnotationsRenderer
-
+from util.images import draw_cross
+from util.images.draw_functions import draw_addition
+from util.util import RenderWindow, KeyCodes
 
 BATCH_SIZE = 32
 NUM_EPOCHS = 20
@@ -16,7 +17,7 @@ IMAGE_SIZE = (256, 256)
 RESOLUTION = (*IMAGE_SIZE, 3)
 
 
-def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=no_preprocessing):
+def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=None):
     """
     Returns a tf Dataset that can be used for training.
 
@@ -40,11 +41,13 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=n
         (tf.float32, tf.float32),
         (tf.TensorShape(RESOLUTION), tf.TensorShape([2]))
     )
-    dataset = dataset.cache()
     dataset = dataset.take((joined_data_info.num_samples // batch_size) * batch_size)
+    dataset = dataset.cache()
     dataset = dataset.shuffle(joined_data_info.num_samples)
     dataset = dataset.batch(batch_size, drop_remainder=True)
     dataset = dataset.repeat()
+    if preprocessing is not None:
+        dataset = dataset.map(preprocessing, 4)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return dataset
 
@@ -53,6 +56,28 @@ def create_preprocessing():
     scale = scale_to(IMAGE_SIZE)
     brightness = random_brightness(0.2)
     return chain([scale, brightness])
+
+
+def add_annotation(image, annotation):
+    y, x = int(annotation[0] * image.shape[0]), int(annotation[1] * image.shape[1])
+    draw_cross(image, (y, x), draw_function=draw_addition)
+
+
+def show_dataset(dataset, extra_annotations=None):
+    render_window = RenderWindow('dataset', (50, 50))
+    index = 0
+    for sample in dataset:
+        image_data, annotation_data = sample
+        for image, annotation in zip(image_data, annotation_data):
+            image = image.numpy()
+            annotation = annotation.numpy()
+            add_annotation(image, annotation)
+            if extra_annotations is not None:
+                extra_annotation = extra_annotations[index]
+                add_annotation(image, extra_annotation)
+            if render_window.show_frame(image) == KeyCodes.ESCAPE:
+                return
+            index += 1
 
 
 def train_conv_model(args):
@@ -70,33 +95,29 @@ def train_conv_model(args):
     joined_train_data_info = _join_dataset_placeholder_infos(train_dataset_placeholders)
     train_dataset = _get_tf_dataset(train_dataset_placeholders, preprocessing=create_preprocessing())
 
-    eval_dataset = AnnotatedDataset.concatenate(map(AnnotatedDataset.from_placeholder, eval_dataset_placeholders))
-    eval_dataset = eval_dataset.scale(IMAGE_SIZE)
+    # show_dataset(train_dataset)
+
+    joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
+    eval_dataset = _get_tf_dataset(eval_dataset_placeholders, preprocessing=create_preprocessing())
 
     print('num train samples: {}'.format(joined_train_data_info.num_samples))
-    print('num eval samples: {}'.format(eval_dataset.get_num_samples()))
+    print('num eval samples: {}'.format(joined_eval_data_info.num_samples))
 
     model = create_compiled_conv_model(RESOLUTION)
     model.summary()
     model.fit(
         train_dataset,
         steps_per_epoch=joined_train_data_info.num_samples // BATCH_SIZE,
-        validation_data=(eval_dataset.video_data, eval_dataset.annotation_data),
-        validation_steps=eval_dataset.get_num_samples(),
+        validation_data=eval_dataset,
+        validation_steps=joined_eval_data_info.num_samples // BATCH_SIZE,
         epochs=NUM_EPOCHS,
         verbose=True,
     )
 
     if args.show:
-        annotations = model.predict(x=eval_dataset.video_data)
+        annotations = model.predict(x=eval_dataset, steps=joined_eval_data_info.num_samples // BATCH_SIZE)
 
-        show_frames(
-            eval_dataset,
-            render_callback=ZoomAnnotationsRenderer(
-                [eval_dataset.annotation_data, annotations],
-                eval_dataset.get_resolution()
-            )
-        )
+        show_dataset(eval_dataset, annotations)
 
 
 def _join_dataset_placeholder_infos(dataset_placeholders):
