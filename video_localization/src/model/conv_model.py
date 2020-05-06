@@ -15,17 +15,17 @@ def create_uncompiled_conv_model(input_shape):
     model = keras.Sequential()
 
     model.add(layers.Conv2D(
-        filters=32, kernel_size=(3, 3), strides=1, activation='relu', input_shape=input_shape,
+        filters=8, kernel_size=(2, 2), strides=2, activation='relu', input_shape=input_shape,
         kernel_regularizer=regularizers.l2(0.001)
     ))
-    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(layers.Conv2D(
-        filters=32, kernel_size=(3, 3), strides=1, activation='relu',
+        filters=8, kernel_size=(2, 2), strides=2, activation='relu',
         kernel_regularizer=regularizers.l2(0.001)
     ))
-    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(layers.Conv2D(
-        filters=32, kernel_size=(3, 3), strides=2, activation='relu',
+        filters=4, kernel_size=(2, 2), strides=2, activation='relu',
         kernel_regularizer=regularizers.l2(0.001))
     )
     # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
