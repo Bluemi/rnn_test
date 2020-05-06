@@ -4,7 +4,7 @@ import random
 import tensorflow as tf
 
 from data.data import AnnotatedDataset, DatasetPlaceholder, DataInfo
-from data.preprocessing import scale_to, no_preprocessing
+from data.preprocessing import scale_to, no_preprocessing, random_brightness, chain
 from model.conv_model import create_compiled_conv_model
 from util.show_frames import show_frames, ZoomAnnotationsRenderer
 
@@ -32,8 +32,8 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=n
     def _dataset_gen():
         for dataset_placeholder in random.sample(dataset_placeholders, len(dataset_placeholders)):
             annotated_dataset = AnnotatedDataset.from_placeholder(dataset_placeholder, divisible_by=batch_size)
-            for video_data, annotation_data in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
-                yield preprocessing(video_data, annotation_data)
+            for image, annotation in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
+                yield preprocessing(image, annotation)
 
     dataset = tf.data.Dataset.from_generator(
         _dataset_gen,
@@ -49,6 +49,12 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=n
     return dataset
 
 
+def create_preprocessing():
+    scale = scale_to(IMAGE_SIZE)
+    brightness = random_brightness(0.2)
+    return chain([scale, brightness])
+
+
 def train_conv_model(args):
     dataset_placeholders = DatasetPlaceholder.list_database(args.train_data, DatasetPlaceholder.is_full_dataset)
 
@@ -62,7 +68,7 @@ def train_conv_model(args):
             train_dataset_placeholders.append(dataset_placeholder)
 
     joined_train_data_info = _join_dataset_placeholder_infos(train_dataset_placeholders)
-    train_dataset = _get_tf_dataset(train_dataset_placeholders, preprocessing=scale_to(IMAGE_SIZE))
+    train_dataset = _get_tf_dataset(train_dataset_placeholders, preprocessing=create_preprocessing())
 
     eval_dataset = AnnotatedDataset.concatenate(map(AnnotatedDataset.from_placeholder, eval_dataset_placeholders))
     eval_dataset = eval_dataset.scale(IMAGE_SIZE)
