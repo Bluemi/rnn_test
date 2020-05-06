@@ -304,7 +304,10 @@ class RenderAnnotationsSupplier:
             y = int(rel_y * height)
             x = int(rel_x * width)
 
-            draw_cross(current_frame, (y, x), draw_function=draw_addition)
+            addition_diff = 0.4
+            if 0 <= rel_x <= 1 and 0 <= rel_y <= 1 and np.mean(current_frame[x, y]) > 0.5:
+                addition_diff = -0.4
+            draw_cross(current_frame, (y, x), draw_function=create_draw_addition(addition_diff))
 
         return current_frame
 

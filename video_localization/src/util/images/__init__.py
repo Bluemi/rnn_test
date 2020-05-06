@@ -33,7 +33,7 @@ def draw_point(frame, position, draw_function=None):
             frame[position] = draw_function(frame[position])
 
 
-def draw_cross(frame, position, size=3, draw_function=None):
+def draw_cross(frame, position, size=5, draw_function=None):
     """
     Draws a cross into the given frame at the given position.
 
