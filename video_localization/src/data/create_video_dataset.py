@@ -6,7 +6,7 @@ import numpy as np
 
 from util.camera import Camera
 from data.data import VIDEO_DATASET_FILENAME, INFO_FILENAME, DataError
-from util.show_frames import default_key_callback, show_frames
+from util.show_frames import default_key_callback, show_frames, ShowFramesState
 from util.util import RenderWindow, KeyCodes
 
 DATASET_TIME_FORMAT = '%H_%M_%S__%d_%m_%Y'
@@ -23,14 +23,20 @@ def create_video_dataset(args):
     :raise OSError: If the dataset directory already exists
     """
     camera = Camera.create()
-    render_window = RenderWindow('current')
+    render_window = RenderWindow('current', (50, 150))
 
     frames = []
 
+    index = 0
     while True:
         frame = camera.next_frame()
 
         frames.append(frame)
+
+        if index % 50 == 0:
+            print('num frames: {}'.format(index))
+
+        index += 1
 
         key = render_window.show_frame(frame, wait_key_duration=10)
         if key == KeyCodes.ESCAPE:
@@ -109,6 +115,8 @@ class EditKeySupplier:
         elif key == KeyCodes.E:
             self.end_index = frames_state.current_index + 1
             print('set end index = {}'.format(self.end_index))
+        elif key == KeyCodes.END:
+            frames_state.current_index = frames_state.num_frames - 1
         else:
             return False
 

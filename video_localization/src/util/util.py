@@ -15,6 +15,7 @@ class KeyCodes(IntEnum):
     MINUS = 45
     LEFT = 81
     RIGHT = 83
+    END = 87
     A = 97
     B = 98
     C = 99
