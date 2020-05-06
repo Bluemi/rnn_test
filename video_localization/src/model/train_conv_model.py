@@ -1,13 +1,14 @@
 from typing import Iterable
 import random
 
+import numpy as np
 import tensorflow as tf
 
 from data.data import AnnotatedDataset, DatasetPlaceholder, DataInfo
 from data.preprocessing import scale_to, random_brightness, chain
 from model.conv_model import create_compiled_conv_model
 from util.images import draw_cross
-from util.images.draw_functions import draw_addition
+from util.images.draw_functions import create_draw_addition, dark_version
 from util.util import RenderWindow, KeyCodes
 
 BATCH_SIZE = 32
@@ -58,9 +59,11 @@ def create_preprocessing():
     return chain([scale, brightness])
 
 
-def add_annotation(image, annotation):
+def add_annotation(image, annotation, color):
     y, x = int(annotation[0] * image.shape[0]), int(annotation[1] * image.shape[1])
-    draw_cross(image, (y, x), draw_function=draw_addition)
+    if 0 <= annotation[0] <= 1 and 0 <= annotation[1] <= 1 and np.mean(image[y, x]) > 0.4:
+        color = dark_version(color)
+    draw_cross(image, (y, x), draw_function=create_draw_addition(color))
 
 
 def show_dataset(dataset, extra_annotations=None):
@@ -71,10 +74,10 @@ def show_dataset(dataset, extra_annotations=None):
         for image, annotation in zip(image_data, annotation_data):
             image = image.numpy()
             annotation = annotation.numpy()
-            add_annotation(image, annotation)
+            add_annotation(image, annotation, np.array([0.0, 0.5, 0.0]))
             if extra_annotations is not None:
                 extra_annotation = extra_annotations[index]
-                add_annotation(image, extra_annotation)
+                add_annotation(image, extra_annotation, np.array([0.5, 0.0, 0.0]))
             if render_window.show_frame(image) == KeyCodes.ESCAPE:
                 return
             index += 1
