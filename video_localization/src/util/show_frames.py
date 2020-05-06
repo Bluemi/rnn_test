@@ -2,13 +2,14 @@ import numpy as np
 
 from data.data import AnnotatedDataset, VideoDataset
 from util.images import draw_cross, get_zoomed_image, translate_position
-from util.images.draw_functions import create_draw_addition, draw_addition, dark_version
+from util.images.draw_functions import create_draw_addition, dark_version
 from util.util import KeyCodes, ACTION_NEXT_KEYS, ACTION_PREVIOUS_KEYS, RenderWindow
 
 
 DEFAULT_ZOOM_RENDERER_OUTPUT_SIZE = (801, 801)
 DEFAULT_KEY_CALLBACK_MOVE_SPEED = 2
 DEFAULT_ANNOTATION_COLORS = [np.array([0.0, 0.7, 0.0]), np.array([0.0, 0.0, 0.7]), np.array([0.7, 0.0, 0.0])]
+AUTO_PLAY_INTERVAL = 20
 
 
 class ShowFramesState:
@@ -91,6 +92,8 @@ class FillAnnotationsKeySupplier:
         """
         self.annotations = annotations
         self.resolution = resolution[:2]
+        self.auto_play = False
+        self.auto_play_counter = 0
 
     def _set_point(self, current_index, render_position):
         annotation_position = (
@@ -182,6 +185,18 @@ class FillAnnotationsKeySupplier:
         """
         return np.all(np.isfinite(self.annotations[index]))
 
+    def _forward(self, frames_state):
+        """
+        Sets the current point, increases the frames index and interpolates forward.
+
+        :param frames_state: The ShowFramesState object to handle
+        :type frames_state: ShowFramesState
+        """
+        self._set_point(frames_state.current_index, frames_state.render_position)
+        print('> {}/{}'.format(frames_state.current_index, frames_state.num_frames))
+        frames_state.inc_index()
+        self._interpolate_forward(frames_state)
+
     def __call__(self, frames_state, key):
         """
         Changes the frames_state, depending on key and fills out the given annotations.
@@ -193,11 +208,14 @@ class FillAnnotationsKeySupplier:
         :return: True, if the key was applied otherwise False
         :rtype: bool
         """
-        if key == KeyCodes.SPACE:
-            self._set_point(frames_state.current_index, frames_state.render_position)
-            print('finished index {}'.format(frames_state.current_index))
-            frames_state.inc_index()
-            self._interpolate_forward(frames_state)
+        if key == KeyCodes.SPACE or (key == 0 and self.auto_play):
+            self._forward(frames_state)
+        elif key == -1:
+            if self.auto_play:
+                self.auto_play_counter -= 1
+                if self.auto_play_counter <= 0:
+                    self.auto_play_counter = AUTO_PLAY_INTERVAL
+                    self._forward(frames_state)
         elif key == KeyCodes.ENTER:
             self._set_point(frames_state.current_index, frames_state.render_position)
         elif key == KeyCodes.ESCAPE:
@@ -219,6 +237,8 @@ class FillAnnotationsKeySupplier:
                 self._set_point(frames_state.current_index, frames_state.render_position)
             self._interpolate(frames_state.current_index)
             frames_state.inc_index()
+        elif key == KeyCodes.P:
+            self.auto_play = not self.auto_play
         else:
             return default_key_callback(frames_state, key)
         return True
@@ -402,10 +422,10 @@ class ZoomAnnotationsRenderer(ZoomRenderer):
                     frames_state.zoom
                 )
                 draw_position = tuple(int(x) for x in draw_position)
-                if np.mean(output_image[draw_position]) < 0.5:
-                    used_color = annotation_color
-                else:
-                    used_color = dark_version(annotation_color)
+                used_color = annotation_color
+                if 0 <= draw_position[0] < output_image.shape[0] and 0 <= draw_position[1] < output_image.shape[1]:
+                    if not np.mean(output_image[draw_position]) < 0.5:
+                        used_color = dark_version(annotation_color)
 
                 draw_cross(
                     output_image,

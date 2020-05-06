@@ -26,6 +26,7 @@ class KeyCodes(IntEnum):
     K = 107
     L = 108
     N = 110
+    P = 112
     T = 116
     U = 117
     W = 119
