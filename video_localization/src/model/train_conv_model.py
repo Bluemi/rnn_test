@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from data.data import AnnotatedDataset, DatasetPlaceholder, DataInfo
-from data.preprocessing import scale_to, random_brightness, chain
+from data.preprocessing import scale_to, random_brightness, chain, RandomTransformer
 from model.conv_model import create_compiled_conv_model
 from util.images import draw_cross
 from util.images.draw_functions import create_draw_addition, dark_version
@@ -17,25 +17,32 @@ NUM_EPOCHS = 20
 IMAGE_SIZE = (128, 128)
 RESOLUTION = (*IMAGE_SIZE, 3)
 
+TRANSFORM_SCALE = 1.05
+TRANSFORM_TRANSLATION = 7
+TRANSFORM_ROTATION = 0.0002
 
-def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=None):
+
+def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, augmentation=None):
     """
     Returns a tf Dataset that can be used for training.
 
     :param dataset_placeholders: The placeholders to use for this dataset
     :type dataset_placeholders: List[DatasetPlaceholder]
-    :param preprocessing: A callable that gets called for every image and annotation data
-    :type preprocessing: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
+    :param image_size: The scale for the images given as tuple (height, width)
+    :type image_size: tuple[int, int]
+    :param augmentation: A callable that gets called for every image and annotation data
+    :type augmentation: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
     :return: A tensorflow Dataset
     :rtype: tf.data.Dataset
     """
     joined_data_info = _join_dataset_placeholder_infos(dataset_placeholders)
+    scale_func = scale_to(image_size)
 
     def _dataset_gen():
         for dataset_placeholder in random.sample(dataset_placeholders, len(dataset_placeholders)):
             annotated_dataset = AnnotatedDataset.from_placeholder(dataset_placeholder, divisible_by=batch_size)
             for image, annotation in zip(annotated_dataset.video_data, annotated_dataset.annotation_data):
-                yield preprocessing(image, annotation)
+                yield scale_func(image, annotation)
 
     dataset = tf.data.Dataset.from_generator(
         _dataset_gen,
@@ -47,16 +54,16 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, preprocessing=N
     dataset = dataset.shuffle(joined_data_info.num_samples)
     dataset = dataset.batch(batch_size, drop_remainder=True)
     dataset = dataset.repeat()
-    if preprocessing is not None:
-        dataset = dataset.map(preprocessing, 4)
+    if augmentation is not None:
+        dataset = dataset.map(augmentation, 4)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     return dataset
 
 
-def create_preprocessing():
-    scale = scale_to(IMAGE_SIZE)
+def create_augmentation():
     brightness = random_brightness(0.2)
-    return chain([scale, brightness])
+    transformer = RandomTransformer(TRANSFORM_SCALE, TRANSFORM_TRANSLATION, TRANSFORM_ROTATION)
+    return chain([brightness, transformer])
 
 
 def add_annotation(image, annotation, color):
@@ -96,12 +103,12 @@ def train_conv_model(args):
             train_dataset_placeholders.append(dataset_placeholder)
 
     joined_train_data_info = _join_dataset_placeholder_infos(train_dataset_placeholders)
-    train_dataset = _get_tf_dataset(train_dataset_placeholders, preprocessing=create_preprocessing())
+    train_dataset = _get_tf_dataset(train_dataset_placeholders, augmentation=create_augmentation())
 
     # show_dataset(train_dataset)
 
     joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
-    eval_dataset = _get_tf_dataset(eval_dataset_placeholders, preprocessing=create_preprocessing())
+    eval_dataset = _get_tf_dataset(eval_dataset_placeholders, augmentation=create_augmentation())
 
     print('num train samples: {}'.format(joined_train_data_info.num_samples))
     print('num eval samples: {}'.format(joined_eval_data_info.num_samples))
