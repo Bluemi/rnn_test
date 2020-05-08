@@ -19,7 +19,6 @@ RESOLUTION = (*IMAGE_SIZE, 3)
 
 TRANSFORM_SCALE = 1.05
 TRANSFORM_TRANSLATION = 7
-TRANSFORM_ROTATION = 0.0002
 
 
 def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, augmentation=None):
@@ -62,7 +61,7 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, image_size=IMAG
 
 def create_augmentation():
     brightness = random_brightness(0.2)
-    transformer = RandomTransformer(TRANSFORM_SCALE, TRANSFORM_TRANSLATION, TRANSFORM_ROTATION)
+    transformer = RandomTransformer(TRANSFORM_SCALE, TRANSFORM_TRANSLATION)
     return chain([brightness, transformer])
 
 
