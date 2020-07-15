@@ -12,6 +12,8 @@ opencv-python = "^4.2.0"
 tensorflow = "^2.2.0"
 tensorflow-estimator = "^2.1.0"
 tensorflow_addons = "^0.10.0"
+determined = "^0.12.11"
+determined-cli = "^0.12.11"
 
 [tool.poetry.dev-dependencies]
 

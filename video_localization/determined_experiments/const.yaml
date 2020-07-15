@@ -1,0 +1,8 @@
+description: "Test Training for conv model"
+hyperparameters:
+  global_batch_size: 32
+searcher:
+  name: single
+  metric: val_accuracy
+  max_steps: 45
+entrypoint: "train.train_determined_conv:ConvTrial"

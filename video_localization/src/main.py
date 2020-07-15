@@ -6,7 +6,7 @@ from util import test_camera
 
 
 def do_train_conv_model(args):
-    from model.train_conv_model import train_conv_model
+    from train.train_conv_model import train_conv_model
     train_conv_model(args)
 
 
