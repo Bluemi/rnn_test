@@ -1,6 +1,5 @@
 import tensorflow.keras as keras
-from tensorflow.keras import layers
-from tensorflow_core.python.keras import regularizers
+from tensorflow.keras import layers, regularizers
 
 
 def create_uncompiled_conv_model(input_shape):
@@ -15,23 +14,23 @@ def create_uncompiled_conv_model(input_shape):
     model = keras.Sequential()
 
     model.add(layers.Conv2D(
-        filters=8, kernel_size=(2, 2), strides=2, activation='relu', input_shape=input_shape,
+        filters=64, kernel_size=(4, 4), strides=1, activation='relu', input_shape=input_shape,
         kernel_regularizer=regularizers.l2(0.001)
     ))
     # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(layers.Conv2D(
-        filters=8, kernel_size=(2, 2), strides=2, activation='relu',
+        filters=32, kernel_size=(2, 2), strides=1, activation='relu',
         kernel_regularizer=regularizers.l2(0.001)
     ))
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(layers.Conv2D(
-        filters=4, kernel_size=(2, 2), strides=2, activation='relu',
+        filters=16, kernel_size=(2, 2), strides=1, activation='relu',
         kernel_regularizer=regularizers.l2(0.001))
     )
     # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
     model.add(layers.Flatten())
-    # model.add(layers.Dense(32, activation='relu'))
-    model.add(layers.Dense(2, activation='linear'))
+    model.add(layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(layers.Dense(2, activation='linear', bias_regularizer=regularizers.l1(0.005)))
 
     return model
 
@@ -48,6 +47,6 @@ def create_compiled_conv_model(input_shape):
     """
     model = create_uncompiled_conv_model(input_shape)
 
-    model.compile(loss=keras.losses.MeanSquaredError(), optimizer=keras.optimizers.Adam())
+    model.compile(loss=keras.losses.MeanSquaredError(), optimizer=keras.optimizers.Adam(learning_rate=0.0003))
 
     return model

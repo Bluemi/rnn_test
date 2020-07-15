@@ -12,7 +12,7 @@ from util.images.draw_functions import create_draw_addition, dark_version
 from util.util import RenderWindow, KeyCodes
 
 BATCH_SIZE = 32
-NUM_EPOCHS = 20
+NUM_EPOCHS = 2000
 
 IMAGE_SIZE = (128, 128)
 RESOLUTION = (*IMAGE_SIZE, 3)
