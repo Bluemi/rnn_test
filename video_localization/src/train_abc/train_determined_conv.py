@@ -28,10 +28,14 @@ class ConvTrial(TFKerasTrial):
         return model
 
     def build_training_data_loader(self) -> InputData:
-        return _get_tf_dataset(self.train_dataset_placeholders, augmentation=create_augmentation())
+        dataset = _get_tf_dataset(self.train_dataset_placeholders, augmentation=create_augmentation())
+        dataset = self.context.wrap_dataset(dataset)
+        return dataset
 
     def build_validation_data_loader(self) -> InputData:
-        return _get_tf_dataset(self.eval_dataset_placeholders)
+        dataset = _get_tf_dataset(self.eval_dataset_placeholders)
+        dataset = self.context.wrap_dataset(dataset)
+        return dataset
 
     @staticmethod
     def list_placeholders():

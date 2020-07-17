@@ -47,6 +47,10 @@ def create_compiled_conv_model(input_shape):
     """
     model = create_uncompiled_conv_model(input_shape)
 
-    model.compile(loss=keras.losses.MeanSquaredError(), optimizer=keras.optimizers.Adam(learning_rate=0.0003))
+    model.compile(
+        loss=keras.losses.MeanSquaredError(),
+        optimizer=keras.optimizers.Adam(learning_rate=0.0003),
+        metrics=[keras.metrics.MeanAbsoluteError()]
+    )
 
     return model
