@@ -1,8 +1,14 @@
 description: "Test Training for conv model"
 hyperparameters:
   global_batch_size: 32
+environment:
+  image: bruno1996/det_hand_tracker_image
 searcher:
   name: single
   metric: val_accuracy
   max_steps: 45
-entrypoint: "train.train_determined_conv:ConvTrial"
+entrypoint: "train_abc.train_determined_conv:ConvTrial"
+bind_mounts:
+  - host_path: /home/alok/projects/learn/rnn_test/video_localization/res/right_hand
+    container_path: /data/train_data
+    read_only: True
