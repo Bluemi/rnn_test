@@ -21,7 +21,15 @@ TRANSFORM_SCALE = 1.05
 TRANSFORM_TRANSLATION = 7
 
 
-def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, augmentation=None):
+def _get_tf_dataset(
+        dataset_placeholders,
+        batch_size=BATCH_SIZE,
+        image_size=IMAGE_SIZE,
+        augmentation=None,
+        cache=True,
+        batch=True,
+        repeat=True
+):
     """
     Returns a tf Dataset that can be used for training.
 
@@ -49,10 +57,13 @@ def _get_tf_dataset(dataset_placeholders, batch_size=BATCH_SIZE, image_size=IMAG
         (tf.TensorShape(RESOLUTION), tf.TensorShape([2]))
     )
     dataset = dataset.take((joined_data_info.num_samples // batch_size) * batch_size)
-    dataset = dataset.cache()
+    if cache:
+        dataset = dataset.cache()
     dataset = dataset.shuffle(joined_data_info.num_samples)
-    dataset = dataset.batch(batch_size, drop_remainder=True)
-    dataset = dataset.repeat()
+    if batch:
+        dataset = dataset.batch(batch_size, drop_remainder=True)
+    if repeat:
+        dataset = dataset.repeat()
     if augmentation is not None:
         dataset = dataset.map(augmentation, 4)
     dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
