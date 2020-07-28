@@ -55,20 +55,23 @@ def create_uncompiled_conv_model(
     return model
 
 
-def create_compiled_conv_model(input_shape):
+def create_compiled_conv_model(input_shape, **hyperparameters):
     """
     Creates a compiled keras convolutional model with the given input shape.
     Uses MeanSquaredError as Loss and Adam Optimizer.
 
     :param input_shape: The expected shape of the input data
     :type input_shape: tuple[int]
+    :param hyperparameters: The hyperparameters, which are forwarded to create_uncompiled_conv_model
+    :type hyperparameters: dict[str, Any]
     :return: A sequential keras model
     :rtype: keras.Sequential
     """
-    model = create_uncompiled_conv_model(input_shape)
+    model = create_uncompiled_conv_model(input_shape, **hyperparameters)
 
     model.compile(
         loss=keras.losses.MeanSquaredError(),
+        # loss=keras.losses.MeanAbsoluteError(),
         optimizer=keras.optimizers.Adam(learning_rate=0.0003),
         metrics=[keras.metrics.MeanAbsoluteError()]
     )

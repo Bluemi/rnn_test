@@ -10,15 +10,18 @@ from model.conv_model import create_compiled_conv_model
 from util.images import draw_cross
 from util.images.draw_functions import create_draw_addition, dark_version
 from util.util import RenderWindow, KeyCodes
+from train_abc.hyperparameter_sets import hyperparameter_set_1 as hyperparameter_set
 
 BATCH_SIZE = 32
-NUM_EPOCHS = 2000
+NUM_EPOCHS = 30
 
 IMAGE_SIZE = (128, 128)
 RESOLUTION = (*IMAGE_SIZE, 3)
 
 TRANSFORM_SCALE = 1.05
 TRANSFORM_TRANSLATION = 7
+
+NUM_SHOW_BATCHES = 2
 
 
 def _get_tf_dataset(
@@ -86,11 +89,12 @@ def add_annotation(image, annotation, color):
 def show_dataset(dataset, extra_annotations=None):
     render_window = RenderWindow('dataset', (50, 50))
     index = 0
-    for sample in dataset:
-        image_data, annotation_data = sample
+    for image_data, annotation_data in dataset:
         for image, annotation in zip(image_data, annotation_data):
-            image = image.numpy()
-            annotation = annotation.numpy()
+            if not isinstance(image, np.ndarray):
+                image = image.numpy()
+            if not isinstance(annotation, np.ndarray):
+                annotation = annotation.numpy()
             add_annotation(image, annotation, np.array([0.0, 0.5, 0.0]))
             if extra_annotations is not None:
                 extra_annotation = extra_annotations[index]
@@ -123,7 +127,7 @@ def train_conv_model(args):
     print('num train samples: {}'.format(joined_train_data_info.num_samples))
     print('num eval samples: {}'.format(joined_eval_data_info.num_samples))
 
-    model = create_compiled_conv_model(RESOLUTION)
+    model = create_compiled_conv_model(RESOLUTION, **hyperparameter_set)
     model.summary()
     model.fit(
         train_dataset,
@@ -135,9 +139,22 @@ def train_conv_model(args):
     )
 
     if args.show:
-        annotations = model.predict(x=eval_dataset, steps=joined_eval_data_info.num_samples // BATCH_SIZE)
+        x_data = []
 
-        show_dataset(eval_dataset, annotations)
+        show_data = []
+
+        for x_batch, y_batch in eval_dataset:
+            x_data.append(x_batch.numpy())
+            show_data.append((x_batch.numpy(), y_batch.numpy()))
+            if len(x_data) >= NUM_SHOW_BATCHES:
+                break
+
+        x_data = np.array(x_data)
+        x_data.resize((BATCH_SIZE*NUM_SHOW_BATCHES, *RESOLUTION))
+
+        annotations = model.predict(x=x_data, steps=NUM_SHOW_BATCHES)
+
+        show_dataset(show_data, annotations)
 
 
 def _join_dataset_placeholder_infos(dataset_placeholders):
