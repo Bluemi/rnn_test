@@ -10,7 +10,7 @@ from model.conv_model import create_compiled_conv_model
 from util.images import draw_cross
 from util.images.draw_functions import create_draw_addition, dark_version
 from util.util import RenderWindow, KeyCodes
-from train_abc.hyperparameter_sets import hyperparameter_set_1 as hyperparameter_set
+from train.hyperparameter_sets import hyperparameter_set_1 as hyperparameter_set
 
 BATCH_SIZE = 32
 NUM_EPOCHS = 30

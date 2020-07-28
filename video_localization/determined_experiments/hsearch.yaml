@@ -48,7 +48,7 @@ searcher:
   metric: val_mean_absolute_error
   max_steps: 45
   max_trials: 128
-entrypoint: "train_abc.train_determined_conv:ConvTrial"
+entrypoint: "train.train_determined_conv:ConvTrial"
 bind_mounts:
   - host_path: /home/alok/projects/learn/rnn_test/video_localization/res/right_hand
     container_path: /data/train_data
