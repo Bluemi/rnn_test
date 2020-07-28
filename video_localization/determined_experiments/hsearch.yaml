@@ -16,15 +16,15 @@ hyperparameters:
   regularization1:
     type: double
     minval: 0.0
-    maxval: 0.01
+    maxval: 0.001
   regularization2:
     type: double
     minval: 0.0
-    maxval: 0.01
+    maxval: 0.001
   regularization3:
     type: double
     minval: 0.0
-    maxval: 0.01
+    maxval: 0.001
   num_nodes_dense1:
     type: int
     minval: 16
@@ -32,15 +32,15 @@ hyperparameters:
   regularization_dense1:
     type: double
     minval: 0.0
-    maxval: 0.01
+    maxval: 0.001
   regularization_dense_bias1:
     type: double
     minval: 0.0
-    maxval: 0.01
+    maxval: 0.001
   regularization_output_bias:
     type: double
     minval: 0.0
-    maxval: 0.01
+    maxval: 0.001
 environment:
   image: bruno1996/det_hand_tracker_image
 searcher:

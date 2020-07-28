@@ -14,7 +14,12 @@ elif [ "$1" == "train" ]; then
 	TF_CPP_MIN_LOG_LEVEL=3 python3 ./src/main.py train-conv-model $database --show
 elif [ "$1" == "import" ]; then
 	python3 ./src/main.py import-video $database "$2"
+elif [ "$1" == "det" ]; then
+	expdef="$2"
+	if [ -z "$expdef" ]; then
+		expdef="determined_experiments/hsearch.yaml"
+	fi
+	det experiment create "$expdef" ./src
 else
-	# det experiment create determined_experiments/hsearch.yaml ./src
-	det experiment create "$1" ./src
+	echo "no command defined"
 fi
