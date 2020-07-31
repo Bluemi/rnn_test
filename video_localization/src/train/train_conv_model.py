@@ -147,7 +147,8 @@ def train_conv_model(args):
         save_weights_only=False,
         monitor='val_mean_absolute_error',
         mode='min',
-        save_best_only=True
+        save_best_only=True,
+        verbose=1
     )
     model.fit(
         train_dataset,

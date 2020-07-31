@@ -10,6 +10,11 @@ def do_train_conv_model(args):
     train_conv_model(args)
 
 
+def do_run_model(args):
+    from train.run_model import run_model
+    run_model(args)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Creates a dataset or tests the camera.')
     sub_parsers = parser.add_subparsers()
@@ -72,6 +77,13 @@ def parse_args():
         '--flip', action='store_true', help='If set the video is flipped horizontally'
     )
     import_video_parser.set_defaults(func=import_video)
+
+    # run model
+    run_model_parser = sub_parsers.add_parser(
+        'run-model', description='Runs the given model live using a webcam'
+    )
+    run_model_parser.add_argument('model', type=str, help='The model to run')
+    run_model_parser.set_defaults(func=do_run_model)
 
     return parser.parse_args()
 

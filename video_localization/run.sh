@@ -20,6 +20,8 @@ elif [ "$1" == "det" ]; then
 		expdef="determined_experiments/hsearch.yaml"
 	fi
 	det experiment create "$expdef" ./src
+elif [ "$1" == "run" ]; then
+	python3 ./src/main.py run-model "$2"
 else
 	echo "no command defined"
 fi
