@@ -72,7 +72,7 @@ def create_compiled_conv_model(input_shape, **hyperparameters):
     model.compile(
         loss=keras.losses.MeanSquaredError(),
         # loss=keras.losses.MeanAbsoluteError(),
-        optimizer=keras.optimizers.Adam(learning_rate=0.0003),
+        optimizer=keras.optimizers.Adam(learning_rate=hyperparameters.get('learning_rate', 0.0003)),
         metrics=[keras.metrics.MeanAbsoluteError()]
     )
 

@@ -1,56 +1,60 @@
 description: "Test Training for conv model"
 hyperparameters:
   global_batch_size: 32
+  learning_rate:
+    type: 'double'
+    minval: 0.0001
+    maxval: 0.0006
   num_filters1:
-    type: int
+    type: 'int'
     minval: 16
     maxval: 128
   num_filters2:
-    type: int
+    type: 'int'
     minval: 16
     maxval: 128
   num_filters3:
-    type: int
+    type: 'int'
     minval: 8
     maxval: 64
   regularization1:
-    type: double
+    type: 'double'
     minval: 0.0
     maxval: 0.001
   regularization2:
-    type: double
+    type: 'double'
     minval: 0.0
     maxval: 0.001
   regularization3:
-    type: double
+    type: 'double'
     minval: 0.0
     maxval: 0.001
   num_nodes_dense1:
-    type: int
+    type: 'int'
     minval: 16
     maxval: 128
   regularization_dense1:
-    type: double
+    type: 'double'
     minval: 0.0
     maxval: 0.001
   regularization_dense_bias1:
-    type: double
+    type: 'double'
     minval: 0.0
     maxval: 0.001
   regularization_output_bias:
-    type: double
+    type: 'double'
     minval: 0.0
     maxval: 0.001
 environment:
-  image: bruno1996/det_hand_tracker_image
+  image: 'bruno1996/det_hand_tracker_image'
 searcher:
-  name: adaptive_simple
-  metric: val_mean_absolute_error
+  name: 'adaptive_simple'
+  metric: 'val_mean_absolute_error'
   max_steps: 45
-  max_trials: 128
+  max_trials: 64
 entrypoint: "train.train_determined_conv:ConvTrial"
 bind_mounts:
-  - host_path: /home/alok/projects/learn/rnn_test/video_localization/res/right_hand
-    container_path: /data/train_data
+  - host_path: '/home/alok/projects/learn/rnn_test/video_localization/res/right_hand'
+    container_path: '/data/train_data'
     read_only: True
 max_restarts: 0
