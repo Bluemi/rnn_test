@@ -1,9 +1,13 @@
+import numpy as np
 import tensorflow as tf
 
-from data.preprocessing import scale_to
 from train.train_conv_model import IMAGE_SIZE
 from util.camera import Camera
+from util.images import draw_cross
 from util.util import RenderWindow, KeyCodes
+
+
+MAX_PIXEL_VALUE = 255
 
 
 def run_model(args):
@@ -17,10 +21,17 @@ def run_model(args):
     while True:
         frame = camera.next_frame()
 
+        frame = frame.astype(np.float32) / MAX_PIXEL_VALUE
         scaled_frame = tf.image.resize(frame, IMAGE_SIZE)
         scaled_frame = tf.reshape(scaled_frame, (1, *IMAGE_SIZE, 3))
 
         prediction = model.predict_step(scaled_frame)
+
+        prediction = prediction[0].numpy()
+
+        position = (int(prediction[0]*frame.shape[0]), int(prediction[1] * frame.shape[1]))
+
+        draw_cross(frame, position, size=15)
 
         key = render_window.show_frame(frame, wait_key_duration=10)
         if key == KeyCodes.ESCAPE:
