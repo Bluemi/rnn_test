@@ -15,6 +15,11 @@ def do_run_model(args):
     run_model(args)
 
 
+def do_eval_model(args):
+    from train.evaluate_model import evaluate_model
+    evaluate_model(args)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Creates a dataset or tests the camera.')
     sub_parsers = parser.add_subparsers()
@@ -59,7 +64,7 @@ def parse_args():
     )
     train_conv_model_parser.add_argument(
         '--show', action='store_true',
-        help='If set the predictions of the model are shown using the evaluation data, if present'
+        help='If set the predictions of the model are shown using the validation data, if present'
     )
     train_conv_model_parser.set_defaults(func=do_train_conv_model)
 
@@ -84,6 +89,15 @@ def parse_args():
     )
     run_model_parser.add_argument('model', type=str, help='The model to run')
     run_model_parser.set_defaults(func=do_run_model)
+
+    # evaluate model
+    evaluate_model_parser = sub_parsers.add_parser('eval-model', description='Evaluates the given model')
+    evaluate_model_parser.add_argument(
+        'train_data', metavar='train-data', type=str,
+        help='The path to the database that is used for training'
+    )
+    evaluate_model_parser.add_argument('model', type=str, help='The model to run')
+    evaluate_model_parser.set_defaults(func=do_eval_model)
 
     return parser.parse_args()
 

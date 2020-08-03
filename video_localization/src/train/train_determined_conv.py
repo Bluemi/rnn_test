@@ -3,7 +3,7 @@ from determined.keras import TFKerasTrial, TFKerasTrialContext, InputData
 
 from data.data import DatasetPlaceholder
 from model.conv_model import create_uncompiled_conv_model
-from train.train_conv_model import RESOLUTION, _join_dataset_placeholder_infos, _get_tf_dataset, create_augmentation
+from train.train_conv_model import RESOLUTION, _join_dataset_placeholder_infos, get_tf_dataset, create_augmentation
 
 DATA_DIRECTORY = '/data/train_data'
 
@@ -13,9 +13,9 @@ class ConvTrial(TFKerasTrial):
         super().__init__(context)
 
         # load dataset placeholders
-        self.train_dataset_placeholders, self.eval_dataset_placeholders = ConvTrial.list_placeholders()
+        self.train_dataset_placeholders, self.val_dataset_placeholders = ConvTrial.list_placeholders()
         self.joined_train_data_info = _join_dataset_placeholder_infos(self.train_dataset_placeholders)
-        self.joined_eval_data_info = _join_dataset_placeholder_infos(self.eval_dataset_placeholders)
+        self.joined_val_data_info = _join_dataset_placeholder_infos(self.val_dataset_placeholders)
 
     def build_model(self) -> keras.models.Model:
         model = create_uncompiled_conv_model(
@@ -40,7 +40,7 @@ class ConvTrial(TFKerasTrial):
         return model
 
     def build_training_data_loader(self) -> InputData:
-        dataset = _get_tf_dataset(
+        dataset = get_tf_dataset(
             self.train_dataset_placeholders,
             augmentation=create_augmentation(),
             cache=False,
@@ -51,8 +51,8 @@ class ConvTrial(TFKerasTrial):
         return dataset
 
     def build_validation_data_loader(self) -> InputData:
-        dataset = _get_tf_dataset(
-            self.eval_dataset_placeholders,
+        dataset = get_tf_dataset(
+            self.val_dataset_placeholders,
             cache=False,
             batch=True,
             repeat=False
@@ -65,11 +65,11 @@ class ConvTrial(TFKerasTrial):
         dataset_placeholders = DatasetPlaceholder.list_database(DATA_DIRECTORY, DatasetPlaceholder.is_full_dataset)
 
         train_dataset_placeholders = []
-        eval_dataset_placeholders = []
+        val_dataset_placeholders = []
 
         for dataset_placeholder in dataset_placeholders:
-            if 'eval' in dataset_placeholder.data_info.tags:
-                eval_dataset_placeholders.append(dataset_placeholder)
+            if 'val' in dataset_placeholder.data_info.tags:
+                val_dataset_placeholders.append(dataset_placeholder)
             else:
                 train_dataset_placeholders.append(dataset_placeholder)
-        return train_dataset_placeholders, eval_dataset_placeholders
+        return train_dataset_placeholders, val_dataset_placeholders

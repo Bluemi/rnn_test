@@ -29,7 +29,7 @@ CHECKPOINT_DIR = 'models'
 MODEL_TIME_FORMAT = '%H_%M_%S__%d_%m_%Y'
 
 
-def _get_tf_dataset(
+def get_tf_dataset(
         dataset_placeholders,
         batch_size=BATCH_SIZE,
         image_size=IMAGE_SIZE,
@@ -118,22 +118,22 @@ def train_conv_model(args):
     dataset_placeholders = DatasetPlaceholder.list_database(args.train_data, DatasetPlaceholder.is_full_dataset)
 
     train_dataset_placeholders = []
-    eval_dataset_placeholders = []
+    val_dataset_placeholders = []
 
     for dataset_placeholder in dataset_placeholders:
-        if 'eval' in dataset_placeholder.data_info.tags:
-            eval_dataset_placeholders.append(dataset_placeholder)
+        if 'val' in dataset_placeholder.data_info.tags:
+            val_dataset_placeholders.append(dataset_placeholder)
         else:
             train_dataset_placeholders.append(dataset_placeholder)
 
     joined_train_data_info = _join_dataset_placeholder_infos(train_dataset_placeholders)
-    train_dataset = _get_tf_dataset(train_dataset_placeholders, augmentation=create_augmentation())
+    train_dataset = get_tf_dataset(train_dataset_placeholders, augmentation=create_augmentation())
 
-    joined_eval_data_info = _join_dataset_placeholder_infos(eval_dataset_placeholders)
-    eval_dataset = _get_tf_dataset(eval_dataset_placeholders, augmentation=create_augmentation())
+    joined_val_data_info = _join_dataset_placeholder_infos(val_dataset_placeholders)
+    val_dataset = get_tf_dataset(val_dataset_placeholders, augmentation=create_augmentation())
 
     print('num train samples: {}'.format(joined_train_data_info.num_samples))
-    print('num eval samples: {}'.format(joined_eval_data_info.num_samples))
+    print('num val samples: {}'.format(joined_val_data_info.num_samples))
 
     model = create_compiled_conv_model(RESOLUTION, **hyperparameter_set)
     model.summary()
@@ -153,8 +153,8 @@ def train_conv_model(args):
     model.fit(
         train_dataset,
         steps_per_epoch=joined_train_data_info.num_samples // BATCH_SIZE,
-        validation_data=eval_dataset,
-        validation_steps=joined_eval_data_info.num_samples // BATCH_SIZE,
+        validation_data=val_dataset,
+        validation_steps=joined_val_data_info.num_samples // BATCH_SIZE,
         epochs=NUM_EPOCHS,
         verbose=True,
         callbacks=[model_checkpoint_callback],
@@ -165,7 +165,7 @@ def train_conv_model(args):
 
         show_data = []
 
-        for x_batch, y_batch in eval_dataset:
+        for x_batch, y_batch in val_dataset:
             x_data.append(x_batch.numpy())
             show_data.append((x_batch.numpy(), y_batch.numpy()))
             if len(x_data) >= NUM_SHOW_BATCHES:

@@ -72,11 +72,15 @@ def dump_video_dataset(frames, dataset_directory):
     while not subject:
         subject = input('subject: ')
 
+    tags = input('tags: ').split(',')
+    if len(tags) == 1 and tags[0] == '':
+        tags = []
+
     info_obj = {
         'resolution': frames.shape[1:],
         'num_samples': frames.shape[0],
         'subjects': [subject],
-        'tags': []
+        'tags': tags
     }
 
     info_file_path = os.path.join(dataset_directory, INFO_FILENAME)
