@@ -102,14 +102,15 @@ def add_annotation(image, annotation, color):
     draw_cross(image, (y, x), draw_function=create_draw_addition(color))
 
 
-def show_dataset(dataset, extra_annotations=None):
+def show_dataset(dataset, extra_annotations=None, size=(512, 512)):
     render_window = RenderWindow('dataset', (50, 50))
     index = 0
     for image_data, annotation_data in dataset:
         for image, annotation in zip(image_data, annotation_data):
             if not isinstance(image, np.ndarray):
                 image = image.numpy()
-            image = cv2.resize(image, (256, 256))
+            if size is not None:
+                image = cv2.resize(image, size)
             if not isinstance(annotation, np.ndarray):
                 annotation = annotation.numpy()
             add_annotation(image, annotation, np.array([0.0, 0.5, 0.0]))
