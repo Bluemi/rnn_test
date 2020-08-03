@@ -3,6 +3,7 @@ import time
 from typing import Iterable
 import random
 
+import cv2
 import numpy as np
 import tensorflow as tf
 
@@ -36,7 +37,8 @@ def get_tf_dataset(
         augmentation=None,
         cache=True,
         batch=True,
-        repeat=True
+        repeat=True,
+        shuffle=True,
 ):
     """
     Returns a tf Dataset that can be used for training.
@@ -47,6 +49,14 @@ def get_tf_dataset(
     :type image_size: tuple[int, int]
     :param augmentation: A callable that gets called for every image and annotation data
     :type augmentation: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
+    :param cache: Whether to cache the dataset or not
+    :type cache: bool
+    :param batch: Whether to batch the dataset or not
+    :type batch: bool
+    :param repeat: Whether to repeat the dataset or not
+    :type repeat: bool
+    :param shuffle: Whether to shuffle the dataset or not
+    :type shuffle: bool
     :return: A tensorflow Dataset
     :rtype: tf.data.Dataset
     """
@@ -67,7 +77,8 @@ def get_tf_dataset(
     dataset = dataset.take((joined_data_info.num_samples // batch_size) * batch_size)
     if cache:
         dataset = dataset.cache()
-    dataset = dataset.shuffle(joined_data_info.num_samples)
+    if shuffle:
+        dataset = dataset.shuffle(joined_data_info.num_samples)
     if batch:
         dataset = dataset.batch(batch_size, drop_remainder=True)
     if repeat:
@@ -98,12 +109,13 @@ def show_dataset(dataset, extra_annotations=None):
         for image, annotation in zip(image_data, annotation_data):
             if not isinstance(image, np.ndarray):
                 image = image.numpy()
+            image = cv2.resize(image, (256, 256))
             if not isinstance(annotation, np.ndarray):
                 annotation = annotation.numpy()
             add_annotation(image, annotation, np.array([0.0, 0.5, 0.0]))
             if extra_annotations is not None:
                 extra_annotation = extra_annotations[index]
-                add_annotation(image, extra_annotation, np.array([0.5, 0.0, 0.0]))
+                add_annotation(image, extra_annotation, np.array([0.0, 0.0, 1.0]))
             if render_window.show_frame(image) == KeyCodes.ESCAPE:
                 return
             index += 1

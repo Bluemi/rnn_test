@@ -23,7 +23,7 @@ elif [ "$1" == "det" ]; then
 elif [ "$1" == "run" ]; then
 	python3 ./src/main.py run-model "$2"
 elif [ "$1" == "eval" ]; then
-	python3 ./src/main.py eval-model "$database" "$2"
+	python3 ./src/main.py eval-model "$database" "$2" "$3"
 else
 	python3 ./src/main.py --help
 	echo "no command defined"

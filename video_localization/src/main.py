@@ -97,6 +97,10 @@ def parse_args():
         help='The path to the database that is used for training'
     )
     evaluate_model_parser.add_argument('model', type=str, help='The model to run')
+    evaluate_model_parser.add_argument(
+        '--show', action='store_true',
+        help='If set the predictions of the model are shown'
+    )
     evaluate_model_parser.set_defaults(func=do_eval_model)
 
     return parser.parse_args()

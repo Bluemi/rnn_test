@@ -23,10 +23,6 @@ def run_model(args):
 
         frame = frame.astype(np.float32) / MAX_PIXEL_VALUE
         scaled_frame = tf.image.resize(frame, IMAGE_SIZE)
-        # cv2.imshow('hey', scaled_frame.numpy())
-        # if cv2.waitKey() == KeyCodes.ESCAPE:
-        # break
-        # cv2.destroyAllWindows()
         scaled_frame = tf.reshape(scaled_frame, (1, *IMAGE_SIZE, 3))
 
         prediction = model.predict(scaled_frame)
