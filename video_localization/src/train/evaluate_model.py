@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from data.data import DatasetPlaceholder
-from train.train_conv_model import get_tf_dataset, show_dataset
+from train.train_util import get_tf_dataset, show_dataset
 
 NUM_SHOW_BATCHES = 10
 BATCH_SIZE = 32

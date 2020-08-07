@@ -51,7 +51,7 @@ class FPS:
         """
         Should be called once per frame.
         """
-        self.times.append(time.clock())
+        self.times.append(time.process_time())
 
     def get_fps(self):
         """
@@ -60,7 +60,7 @@ class FPS:
         :return: the fps of calling the update method in the last observation period.
         :rtype: float
         """
-        time_limit = time.clock() - self.observation_period
+        time_limit = time.process_time() - self.observation_period
         while self.times and self.times[0] < time_limit:
             self.times.popleft()
 

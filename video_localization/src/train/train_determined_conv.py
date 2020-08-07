@@ -3,7 +3,7 @@ from determined.keras import TFKerasTrial, TFKerasTrialContext, InputData
 
 from data.data import DatasetPlaceholder
 from model.conv_model import create_uncompiled_conv_model
-from train.train_conv_model import RESOLUTION, _join_dataset_placeholder_infos, get_tf_dataset, create_augmentation
+from train.train_util import get_tf_dataset, create_augmentation, _join_dataset_placeholder_infos, RESOLUTION
 
 DATA_DIRECTORY = '/data/train_data'
 
