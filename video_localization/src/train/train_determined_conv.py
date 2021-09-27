@@ -33,7 +33,8 @@ class ConvTrial(TFKerasTrial):
         )
         model = self.context.wrap_model(model)
         model.compile(
-            loss=keras.losses.MeanSquaredError(),
+            # loss=keras.losses.MeanSquaredError(),
+            loss=keras.losses.MeanAbsoluteError(),
             optimizer=keras.optimizers.Adam(learning_rate=self.context.get_hparam('learning_rate')),
             metrics=[keras.metrics.MeanAbsoluteError()]
         )
